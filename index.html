@@ -359,24 +359,40 @@
     border-radius: var(--radius-sm);
     border: 1px solid var(--border);
     background: var(--surface2);
+    transition: border-color .15s;
   }
+  .cat-item:hover { border-color: var(--border2); }
 
-  .cat-color {
-    width: 12px; height: 12px;
+  .cat-color-btn {
+    width: 20px; height: 20px;
     border-radius: 50%;
+    border: none;
     cursor: pointer;
     flex-shrink: 0;
+    padding: 0;
+    position: relative;
+    overflow: hidden;
+  }
+  .cat-color-btn input[type=color] {
+    position: absolute; inset: 0;
+    opacity: 0; cursor: pointer;
+    width: 100%; height: 100%;
+    border: none; padding: 0;
   }
 
-  .cat-name {
+  .cat-name-input {
     flex: 1;
     background: none;
     border: none;
+    border-bottom: 1px solid transparent;
     color: var(--text);
     font-family: 'DM Mono', monospace;
     font-size: 11px;
     outline: none;
+    padding: 2px 0;
+    transition: border-color .15s;
   }
+  .cat-name-input:focus { border-bottom-color: var(--border2); }
 
   .cat-count {
     font-size: 10px;
@@ -387,22 +403,23 @@
 
   .cat-del {
     background: none; border: none; color: var(--text3);
-    cursor: pointer; font-size: 12px; padding: 0 2px;
-    transition: color .15s;
+    cursor: pointer; font-size: 14px; padding: 0 2px;
+    transition: color .15s; line-height: 1;
   }
   .cat-del:hover { color: var(--urgent); }
 
   .new-cat-row {
-    display: flex; gap: 6px; margin-top: 4px;
+    display: flex; gap: 6px; margin-top: 10px;
+    align-items: center;
   }
-  .color-picker-wrap { position: relative; }
   .color-input {
-    width: 30px; height: 30px;
+    width: 36px; height: 36px;
     border-radius: var(--radius-sm);
     border: 1px solid var(--border);
     cursor: pointer;
-    padding: 2px;
+    padding: 3px;
     background: var(--surface2);
+    flex-shrink: 0;
   }
 
   /* ── INSIGHTS ── */
@@ -604,25 +621,65 @@ function injectRecurring(){
 
 if(curM !== now.getMonth() || curY !== now.getFullYear()) injectRecurring();
 
+// ── ALARM SOUND (Web Audio API) ──
+let audioCtx = null;
+function getAudioCtx(){
+  if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+  return audioCtx;
+}
+function playAlarmSound(){
+  try {
+    const ctx = getAudioCtx();
+    const beeps = [0, 0.35, 0.7];
+    beeps.forEach(offset => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, ctx.currentTime + offset);
+      osc.frequency.setValueAtTime(1100, ctx.currentTime + offset + 0.15);
+      gain.gain.setValueAtTime(0, ctx.currentTime + offset);
+      gain.gain.linearRampToValueAtTime(0.4, ctx.currentTime + offset + 0.02);
+      gain.gain.linearRampToValueAtTime(0, ctx.currentTime + offset + 0.3);
+      osc.start(ctx.currentTime + offset);
+      osc.stop(ctx.currentTime + offset + 0.35);
+    });
+  } catch(e){}
+}
+
 // ── NOTIFICATIONS ──
 let notifEnabled = Notification && Notification.permission === 'granted';
 function requestNotifications(){
   if(!('Notification' in window)){ toast('Seu browser não suporta notificações'); return; }
+  // unlock audio on user gesture
+  try { getAudioCtx().resume(); } catch(e){}
   Notification.requestPermission().then(p=>{
     notifEnabled = p === 'granted';
     document.getElementById('notif-btn').classList.toggle('enabled', notifEnabled);
-    toast(notifEnabled ? '🔔 alertas ativados!' : 'permissão negada');
+    if(notifEnabled){ playAlarmSound(); toast('🔔 alertas + som ativados!'); }
+    else toast('permissão negada');
   });
 }
 function scheduleNotif(task){
-  if(!notifEnabled || !task.alarm) return;
+  if(!task.alarm) return;
   const [h,m] = task.alarm.split(':').map(Number);
-  const t = new Date(curY, curM, task.day, h, m);
-  const diff = t - Date.now() - 15*60*1000;
-  if(diff > 0){
+  const alarmTime = new Date(curY, curM, task.day, h, m);
+  // notify 15min before
+  const diff15 = alarmTime - Date.now() - 15*60*1000;
+  if(diff15 > 0 && notifEnabled){
     setTimeout(()=>{
-      new Notification('📌 Demanda em 15min', { body: task.title, icon: '' });
-    }, diff);
+      new Notification('📌 Demanda em 15min', { body: task.title });
+    }, diff15);
+  }
+  // sound + notify at exact time
+  const diffExact = alarmTime - Date.now();
+  if(diffExact > 0){
+    setTimeout(()=>{
+      playAlarmSound();
+      if(notifEnabled) new Notification('⏰ ' + task.title, { body: 'Hora da sua demanda!' });
+      toast('⏰ ' + task.title);
+    }, diffExact);
   }
 }
 
@@ -648,14 +705,34 @@ function renderCats(){
   sel.innerHTML = cats.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
   list.innerHTML = cats.map(c=>{
     const count = tasks.filter(t=>t.cat===c.id).length;
-    return `<div class="cat-item">
-      <div class="cat-color" style="background:${c.color}" title="${c.name}"></div>
-      <span style="flex:1;font-family:'DM Mono',monospace;font-size:11px;color:var(--text)">${c.name}</span>
+    const isDefault = ['financeiro','trabalho','saude','pessoal','outros'].includes(c.id);
+    return `<div class="cat-item" id="cat-${c.id}">
+      <button class="cat-color-btn" style="background:${c.color}" title="Clique para mudar a cor">
+        <input type="color" value="${c.color}" oninput="updateCatColor('${c.id}', this.value)" />
+      </button>
+      <input class="cat-name-input" value="${c.name}"
+        onchange="updateCatName('${c.id}', this.value)"
+        onblur="updateCatName('${c.id}', this.value)"
+        title="Clique para editar o nome" />
       <span class="cat-count">${count}</span>
-      ${['financeiro','trabalho','saude','pessoal','outros'].includes(c.id)?'':
-        `<button class="cat-del" onclick="deleteCat('${c.id}')">×</button>`}
+      ${!isDefault ? `<button class="cat-del" onclick="deleteCat('${c.id}')" title="Remover">×</button>` : ''}
     </div>`;
   }).join('');
+}
+
+function updateCatColor(id, color){
+  const c = cats.find(c=>c.id===id);
+  if(c){ c.color=color; saveCats(cats); }
+  const btn = document.querySelector(`#cat-${id} .cat-color-btn`);
+  if(btn) btn.style.background = color;
+  render();
+}
+
+function updateCatName(id, name){
+  name = name.trim();
+  if(!name) return;
+  const c = cats.find(c=>c.id===id);
+  if(c && c.name !== name){ c.name=name; saveCats(cats); renderCats(); toast(`Categoria renomeada para "${name}"`); }
 }
 
 function addCategory(){
