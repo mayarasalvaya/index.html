@@ -99,7 +99,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;font
 .task-check{width:18px;height:18px;border:1px solid var(--border2);border-radius:4px;flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;margin-top:2px;transition:all .15s}
 .task-check:hover{border-color:var(--accent)}
 .task-check.checked{background:var(--accent);border-color:var(--accent)}
-.task-check.checked::after{content:'✓';font-size:11px;color:#0c1f1a;font-weight:bold}
+.task-check.checked::after{content:'✓';font-size:11px;color:#0a0a0a;font-weight:bold}
 .task-body{flex:1;min-width:0}
 .task-title{font-size:13px;color:var(--text);margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .task-meta{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
@@ -138,7 +138,7 @@ select.form-input option{background:var(--surface2)}
 .prio-btn.active-chill{border-color:var(--chill);color:var(--chill);background:rgba(122,184,196,.08)}
 .recur-check{display:flex;align-items:center;gap:8px;cursor:pointer;color:var(--text2);font-size:11px}
 .recur-check input{accent-color:var(--accent)}
-.add-btn{width:100%;padding:9px;background:var(--accent);color:#0c1f1a;border:none;border-radius:var(--radius-sm);font-family:'DM Mono',monospace;font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.08em;cursor:pointer;transition:opacity .15s,transform .1s;margin-top:4px}
+.add-btn{width:100%;padding:9px;background:var(--accent);color:#0a0a0a;border:none;border-radius:var(--radius-sm);font-family:'DM Mono',monospace;font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.08em;cursor:pointer;transition:opacity .15s,transform .1s;margin-top:4px}
 .add-btn:hover{opacity:.85}
 .add-btn:active{transform:scale(.98)}
 
@@ -157,7 +157,14 @@ select.form-input option{background:var(--surface2)}
 .new-cat-row{display:flex;gap:6px;margin-top:10px;align-items:center}
 .color-input{width:36px;height:36px;border-radius:var(--radius-sm);border:1px solid var(--border);cursor:pointer;padding:3px;background:var(--surface2);flex-shrink:0}
 
-/* ── INSIGHTS ── */
+/* ── SOUND TOGGLE ── */
+.sound-row{display:flex;align-items:center;gap:8px}
+.sound-toggle{flex-shrink:0;width:36px;height:36px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface2);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all .2s;position:relative}
+.sound-toggle:hover{border-color:var(--border2)}
+.sound-toggle.on{border-color:var(--important);background:rgba(201,169,110,.1)}
+.sound-toggle.on::after{content:'';position:absolute;top:5px;right:5px;width:6px;height:6px;border-radius:50%;background:var(--important)}
+.tag-sound-on{background:rgba(201,169,110,.1);color:var(--important);border:1px solid rgba(201,169,110,.25)}
+.tag-sound-off{background:rgba(255,255,255,.03);color:var(--text3);border:1px solid var(--border)}
 .insights{display:flex;flex-direction:column;gap:8px}
 .insight{padding:8px 10px;border-radius:var(--radius-sm);border-left:2px solid;font-size:11px;line-height:1.5;color:var(--text2)}
 .insight.ok{border-color:var(--accent);background:rgba(131,153,88,.06)}
@@ -176,7 +183,7 @@ select.form-input option{background:var(--surface2)}
 .modal-close{position:absolute;top:14px;right:14px;background:none;border:1px solid var(--border);color:var(--text2);width:28px;height:28px;border-radius:var(--radius-sm);cursor:pointer;font-size:16px;transition:all .15s}
 .modal-close:hover{border-color:var(--border2);color:var(--text)}
 .modal-footer{display:flex;gap:8px;margin-top:20px}
-.modal-save{flex:1;padding:10px;background:var(--accent);color:#0c1f1a;border:none;border-radius:var(--radius-sm);font-family:'DM Mono',monospace;font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.08em;cursor:pointer;transition:opacity .15s}
+.modal-save{flex:1;padding:10px;background:var(--accent);color:#0a0a0a;border:none;border-radius:var(--radius-sm);font-family:'DM Mono',monospace;font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.08em;cursor:pointer;transition:opacity .15s}
 .modal-save:hover{opacity:.85}
 .modal-cancel{padding:10px 18px;background:none;border:1px solid var(--border);color:var(--text2);border-radius:var(--radius-sm);font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;transition:all .15s;text-transform:uppercase}
 .modal-cancel:hover{border-color:var(--border2);color:var(--text)}
@@ -207,7 +214,10 @@ select.form-input option{background:var(--surface2)}
         </div>
         <div>
           <div class="form-label">Horário do alarme</div>
-          <input class="form-input" id="edit-alarm" type="time" />
+          <div class="sound-row">
+            <input class="form-input" id="edit-alarm" type="time" style="flex:1" />
+            <button class="sound-toggle" id="edit-sound-btn" onclick="toggleEditSound()" title="Ativar som para esta tarefa">🔕</button>
+          </div>
         </div>
       </div>
       <div>
@@ -304,7 +314,10 @@ select.form-input option{background:var(--surface2)}
           </div>
           <div>
             <div class="form-label">Horário</div>
-            <input class="form-input" id="new-alarm" type="time" />
+            <div class="sound-row">
+              <input class="form-input" id="new-alarm" type="time" style="flex:1" />
+              <button class="sound-toggle" id="new-sound-btn" onclick="toggleNewSound()" title="Ativar som para esta tarefa">🔕</button>
+            </div>
           </div>
         </div>
         <div>
@@ -352,6 +365,23 @@ select.form-input option{background:var(--surface2)}
 const MONTHS=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
 let now=new Date(), curM=now.getMonth(), curY=now.getFullYear();
 let selPrio='chill', editId=null, editPrio='chill';
+let newSoundOn=false, editSoundOn=false;
+
+// ── SOUND TOGGLE UI ──
+function toggleNewSound(){
+  newSoundOn=!newSoundOn;
+  const btn=document.getElementById('new-sound-btn');
+  btn.textContent=newSoundOn?'🔔':'🔕';
+  btn.classList.toggle('on',newSoundOn);
+  if(newSoundOn){try{getAudioCtx().resume();playAlarmSound();}catch(e){}}
+}
+function toggleEditSound(){
+  editSoundOn=!editSoundOn;
+  const btn=document.getElementById('edit-sound-btn');
+  btn.textContent=editSoundOn?'🔔':'🔕';
+  btn.classList.toggle('on',editSoundOn);
+  if(editSoundOn){try{getAudioCtx().resume();playAlarmSound();}catch(e){}}
+}
 
 // ── STORAGE ──
 const sKey=(m,y)=>`tasks_${y}_${m}`;
@@ -418,7 +448,11 @@ function scheduleNotif(task){
   const d15=at-Date.now()-15*60*1000;
   if(d15>0&&notifEnabled) setTimeout(()=>new Notification('🌿 Demanda em 15min',{body:task.title}),d15);
   const dEx=at-Date.now();
-  if(dEx>0) setTimeout(()=>{playAlarmSound();if(notifEnabled)new Notification('⏰ '+task.title,{body:'Hora da sua demanda!'});toast('⏰ '+task.title);},dEx);
+  if(dEx>0) setTimeout(()=>{
+    if(task.sound) playAlarmSound();
+    if(notifEnabled) new Notification('⏰ '+task.title,{body:'Hora da sua demanda!'});
+    toast('⏰ '+task.title);
+  },dEx);
 }
 
 // ── TOAST ──
@@ -432,10 +466,14 @@ function setEditPrio(btn,p){editPrio=p;document.querySelectorAll('#edit-prio-btn
 function openEditModal(id){
   const t=tasks.find(t=>t.id===id);if(!t)return;
   editId=id;editPrio=t.priority||'chill';
+  editSoundOn=!!t.sound;
   document.getElementById('edit-title').value=t.title;
   document.getElementById('edit-day').value=t.day;
   document.getElementById('edit-alarm').value=t.alarm||'';
   document.getElementById('edit-recur').checked=!!t.recur;
+  const soundBtn=document.getElementById('edit-sound-btn');
+  soundBtn.textContent=editSoundOn?'🔔':'🔕';
+  soundBtn.classList.toggle('on',editSoundOn);
   const sel=document.getElementById('edit-cat');
   sel.innerHTML=cats.map(c=>`<option value="${c.id}"${c.id===t.cat?' selected':''}>${c.name}</option>`).join('');
   document.querySelectorAll('#edit-prio-btns .prio-btn').forEach(b=>{b.className='prio-btn';if(b.dataset.p===editPrio)b.classList.add('active-'+editPrio);});
@@ -454,6 +492,7 @@ function saveEdit(){
   t.cat=document.getElementById('edit-cat').value;
   t.priority=editPrio;
   t.recur=document.getElementById('edit-recur').checked;
+  t.sound=editSoundOn;
   saveTasks(curM,curY,tasks);closeModal();toast(`"${t.title}" atualizada ✓`);render();
 }
 document.getElementById('edit-modal').addEventListener('click',function(e){if(e.target===this)closeModal();});
@@ -512,7 +551,7 @@ function addTask(){
   const cat=document.getElementById('new-cat').value;
   const recur=document.getElementById('new-recur').checked;
   if(!title){document.getElementById('new-title').focus();return;}
-  const task={id:Date.now(),title,day,alarm,cat,priority:selPrio,recur,done:false};
+  const task={id:Date.now(),title,day,alarm,cat,priority:selPrio,recur,sound:newSoundOn,done:false};
   tasks.push(task);saveTasks(curM,curY,tasks);
   if(recur){const base=getRecurBase();base.push({...task,id:Date.now()+1});saveRecurBase(base);}
   scheduleNotif(task);
@@ -520,6 +559,9 @@ function addTask(){
   document.getElementById('new-day').value='';
   document.getElementById('new-alarm').value='';
   document.getElementById('new-recur').checked=false;
+  newSoundOn=false;
+  const sb=document.getElementById('new-sound-btn');
+  sb.textContent='🔕';sb.classList.remove('on');
   toast(`"${title}" adicionada ✓`);render();
 }
 function toggleTask(id){const t=tasks.find(t=>t.id===id);if(t){t.done=!t.done;saveTasks(curM,curY,tasks);render();}}
@@ -646,7 +688,7 @@ function render(){
       const cat=cats.find(c=>c.id===t.cat)||{color:'#4a7a60',name:t.cat||'—'};
       const hex=cat.color.replace('#','');
       const r=parseInt(hex.substring(0,2),16),g=parseInt(hex.substring(2,4),16),b=parseInt(hex.substring(4,6),16);
-      const bgStyle=`background:linear-gradient(135deg,rgba(${r},${g},${b},.12) 0%,rgba(${r},${g},${b},.05) 55%,rgba(12,31,26,.5) 100%);border-color:rgba(${r},${g},${b},.28);`;
+      const bgStyle=`background:linear-gradient(135deg,rgba(${r},${g},${b},.12) 0%,rgba(${r},${g},${b},.05) 55%,rgba(10,10,10,.5) 100%);border-color:rgba(${r},${g},${b},.28);`;
       const isOverdue=isCurMRender&&!t.done&&t.day<today;
       const dayTag=`<span class="tag tag-day" onclick="startDayEdit(event,${t.id})" title="Clique para alterar o prazo">dia ${t.day}</span>`;
       return `<div class="task p-${t.priority||'chill'} ${t.done?'done':''} ${isOverdue?'overdue':''}" style="${bgStyle}">
@@ -660,6 +702,7 @@ function render(){
             <span class="tag" style="background:rgba(${r},${g},${b},.18);color:rgba(${r},${g},${b},1);border:1px solid rgba(${r},${g},${b},.35)">${cat.name}</span>
             ${isOverdue?`<span class="tag tag-overdue">⏰ atrasada</span>`:''}
             ${t.alarm?`<span class="tag tag-alarm">⏰ ${t.alarm}</span>`:''}
+            ${t.alarm?`<span class="tag ${t.sound?'tag-sound-on':'tag-sound-off'}">${t.sound?'🔔':'🔕'}</span>`:''}
             ${t.recur?`<span class="tag tag-recur">↻ mensal</span>`:''}
             ${t.done?`<span class="tag tag-done-badge">★ feito</span>`:''}
           </div>
