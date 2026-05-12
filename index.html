@@ -117,6 +117,9 @@ body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;font
 .task-btn:hover{color:var(--text2)}
 .task-btn.edit:hover{border-color:var(--accent);color:var(--accent-lt)}
 .task-btn.del:hover{border-color:var(--urgent);color:var(--rose-lt)}
+/* priority emoji — bottom right corner */
+.task-prio-badge{position:absolute;bottom:8px;right:10px;font-size:13px;line-height:1;opacity:.55;pointer-events:none;transition:opacity .15s}
+.task:hover .task-prio-badge{opacity:.9}
 
 /* ── SIDEBAR ── */
 .sidebar{display:flex;flex-direction:column;gap:14px}
@@ -464,7 +467,8 @@ function setEditPrio(btn,p){editPrio=p;document.querySelectorAll('#edit-prio-btn
 
 // ── MODAL ──
 function openEditModal(id){
-  const t=tasks.find(t=>t.id===id);if(!t)return;
+  id=String(id);
+  const t=tasks.find(t=>String(t.id)===id);if(!t)return;
   editId=id;editPrio=t.priority||'chill';
   editSoundOn=!!t.sound;
   document.getElementById('edit-title').value=t.title;
@@ -483,7 +487,7 @@ function openEditModal(id){
 function closeModal(){document.getElementById('edit-modal').classList.remove('open');editId=null;}
 function saveEdit(){
   if(!editId)return;
-  const t=tasks.find(t=>t.id===editId);if(!t)return;
+  const t=tasks.find(t=>String(t.id)===String(editId));if(!t)return;
   const newTitle=document.getElementById('edit-title').value.trim();
   if(!newTitle){document.getElementById('edit-title').focus();return;}
   t.title=newTitle;
@@ -564,11 +568,87 @@ function addTask(){
   sb.textContent='🔕';sb.classList.remove('on');
   toast(`"${title}" adicionada ✓`);render();
 }
-function toggleTask(id){const t=tasks.find(t=>t.id===id);if(t){t.done=!t.done;saveTasks(curM,curY,tasks);render();}}
+function toggleTask(id){const t=tasks.find(t=>String(t.id)===String(id));if(t){t.done=!t.done;saveTasks(curM,curY,tasks);render();}}
+
 function deleteTask(id){
-  const t=tasks.find(t=>t.id===id);
-  if(!confirm(`Apagar "${t?.title}"?`))return;
-  tasks=tasks.filter(t=>t.id!==id);saveTasks(curM,curY,tasks);render();toast('Demanda removida');
+  id=String(id);
+  const t=tasks.find(t=>String(t.id)===id);
+  if(!t)return;
+  if(t.recur||t.recurId){
+    showDeleteRecurModal(id);
+  } else {
+    tasks=tasks.filter(t=>String(t.id)!==id);
+    saveTasks(curM,curY,tasks);
+    render();toast(`"${t.title}" removida`);
+  }
+}
+
+function showDeleteRecurModal(id){
+  id=String(id);
+  const t=tasks.find(t=>String(t.id)===id);if(!t)return;
+  const old=document.getElementById('recur-del-modal');
+  if(old)old.remove();
+  const el=document.createElement('div');
+  el.id='recur-del-modal';
+  el.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;display:flex;align-items:center;justify-content:center;padding:1rem';
+  const meses=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+  el.innerHTML=`
+    <div style="background:#111;border:1px solid #333;border-radius:12px;padding:24px;width:100%;max-width:380px;font-family:DM Mono,monospace">
+      <div style="font-family:Fraunces,serif;font-size:1.1rem;font-weight:300;color:#e8e4c8;margin-bottom:8px">remover demanda recorrente</div>
+      <div style="font-size:12px;color:#a8b898;margin-bottom:20px;line-height:1.6">"<strong style="color:#e8e4c8">${t.title}</strong>" se repete todo mês.<br>Como deseja remover?</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <button id="rdm-this" style="padding:10px 14px;background:#191919;border:1px solid #333;border-radius:7px;color:#e8e4c8;font-family:DM Mono,monospace;font-size:11px;cursor:pointer;text-align:left">
+          🗓 <strong>Só este mês</strong><br><span style="color:#4a6050;font-size:10px">Remove apenas de ${meses[curM]}/${curY}</span>
+        </button>
+        <button id="rdm-all" style="padding:10px 14px;background:#191919;border:1px solid #333;border-radius:7px;color:#e8e4c8;font-family:DM Mono,monospace;font-size:11px;cursor:pointer;text-align:left">
+          🗑 <strong>Cancelar recorrência</strong><br><span style="color:#4a6050;font-size:10px">Remove deste mês e para de repetir nos próximos</span>
+        </button>
+        <button id="rdm-cancel" style="padding:8px 14px;background:none;border:1px solid #222;border-radius:7px;color:#a8b898;font-family:DM Mono,monospace;font-size:11px;cursor:pointer;margin-top:4px">
+          cancelar
+        </button>
+      </div>
+    </div>`;
+  document.body.appendChild(el);
+  document.getElementById('rdm-this').onclick=()=>deleteOnlyThisMonth(id);
+  document.getElementById('rdm-all').onclick=()=>deleteAllRecurring(id);
+  document.getElementById('rdm-cancel').onclick=()=>el.remove();
+  el.addEventListener('click',function(e){if(e.target===this)this.remove();});
+}
+
+function deleteOnlyThisMonth(id){
+  id=String(id);
+  const modal=document.getElementById('recur-del-modal');if(modal)modal.remove();
+  const t=tasks.find(t=>String(t.id)===id);
+  const title=t?.title||'';
+  tasks=tasks.filter(t=>String(t.id)!==id);
+  saveTasks(curM,curY,tasks);
+  render();toast(`"${title}" removida só deste mês`);
+}
+
+function deleteAllRecurring(id){
+  id=String(id);
+  const modal=document.getElementById('recur-del-modal');if(modal)modal.remove();
+  const t=tasks.find(t=>String(t.id)===id);
+  const title=t?.title||'';
+  const recurId=String(t?.recurId||id);
+  let base=getRecurBase();
+  base=base.filter(b=>String(b.id)!==recurId&&String(b.id)!==id);
+  saveRecurBase(base);
+  tasks=tasks.filter(t=>String(t.id)!==id);
+  saveTasks(curM,curY,tasks);
+  const now2=new Date();
+  for(let y=now2.getFullYear();y<=now2.getFullYear()+2;y++){
+    for(let m=0;m<12;m++){
+      if(y===curY&&m===curM)continue;
+      try{
+        let mt=JSON.parse(localStorage.getItem(sKey(m,y)))||[];
+        const before=mt.length;
+        mt=mt.filter(t=>String(t.recurId)!==recurId&&String(t.recurId)!==id&&String(t.id)!==id);
+        if(mt.length!==before)localStorage.setItem(sKey(m,y),JSON.stringify(mt));
+      }catch(e){}
+    }
+  }
+  render();toast(`Recorrência de "${title}" cancelada ✓`);
 }
 function changeMonth(dir){
   curM+=dir;if(curM>11){curM=0;curY++;}if(curM<0){curM=11;curY--;}
@@ -578,16 +658,18 @@ function changeMonth(dir){
 // ── INLINE DAY EDIT ──
 function startDayEdit(e,id){
   e.stopPropagation();
+  id=String(id);
   const span=e.currentTarget;
-  const t=tasks.find(t=>t.id===id);if(!t)return;
-  span.outerHTML=`<span class="tag-day-edit" id="dayedit-${id}">dia <input type="number" min="1" max="31" value="${t.day}" onblur="commitDayEdit(${id},this.value)" onkeydown="if(event.key==='Enter')this.blur();if(event.key==='Escape')render();" /></span>`;
+  const t=tasks.find(t=>String(t.id)===id);if(!t)return;
+  span.outerHTML=`<span class="tag-day-edit" id="dayedit-${id}">dia <input type="number" min="1" max="31" value="${t.day}" onblur="commitDayEdit('${id}',this.value)" onkeydown="if(event.key==='Enter')this.blur();if(event.key==='Escape')render();" /></span>`;
   const inp=document.querySelector(`#dayedit-${id} input`);
   if(inp){inp.focus();inp.select();}
 }
 function commitDayEdit(id,val){
+  id=String(id);
   const day=parseInt(val);
   if(!day||day<1||day>31){render();return;}
-  const t=tasks.find(t=>t.id===id);
+  const t=tasks.find(t=>String(t.id)===id);
   if(t&&t.day!==day){t.day=day;saveTasks(curM,curY,tasks);toast(`Prazo atualizado para dia ${day}`);}
   render();
 }
@@ -690,9 +772,11 @@ function render(){
       const r=parseInt(hex.substring(0,2),16),g=parseInt(hex.substring(2,4),16),b=parseInt(hex.substring(4,6),16);
       const bgStyle=`background:linear-gradient(135deg,rgba(${r},${g},${b},.12) 0%,rgba(${r},${g},${b},.05) 55%,rgba(10,10,10,.5) 100%);border-color:rgba(${r},${g},${b},.28);`;
       const isOverdue=isCurMRender&&!t.done&&t.day<today;
-      const dayTag=`<span class="tag tag-day" onclick="startDayEdit(event,${t.id})" title="Clique para alterar o prazo">dia ${t.day}</span>`;
+      const dayTag=`<span class="tag tag-day" onclick="startDayEdit(event,'${t.id}')" title="Clique para alterar o prazo">dia ${t.day}</span>`;
+      const prioEmoji={urgent:'🌸',important:'🌿',chill:'🌊'}[t.priority||'chill'];
       return `<div class="task p-${t.priority||'chill'} ${t.done?'done':''} ${isOverdue?'overdue':''}" style="${bgStyle}">
-        <div class="task-check ${t.done?'checked':''}" onclick="toggleTask(${t.id})"></div>
+        <span class="task-prio-badge">${prioEmoji}</span>
+        <div class="task-check ${t.done?'checked':''}" onclick="toggleTask('${t.id}')"></div>
         <span class="task-star">★</span>
         <div class="task-body">
           ${isOverdue?`<div class="overdue-strip">⚠ atrasada — dia ${t.day}</div>`:''}
@@ -708,8 +792,8 @@ function render(){
           </div>
         </div>
         <div class="task-actions">
-          <button class="task-btn edit" onclick="openEditModal(${t.id})" title="Editar">✎</button>
-          <button class="task-btn del" onclick="deleteTask(${t.id})" title="Apagar">×</button>
+          <button class="task-btn edit" onclick="openEditModal('${t.id}')" title="Editar">✎</button>
+          <button class="task-btn del" onclick="deleteTask('${t.id}')" title="Apagar">×</button>
         </div>
       </div>`;
     }).join('');
