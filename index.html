@@ -432,30 +432,87 @@ function playAlarmSound(){
   }catch(e){}
 }
 
-// ── NOTIFICATIONS ──
+// ── NOTIFICATIONS + SERVICE WORKER ──
 let notifEnabled=typeof Notification!=='undefined'&&Notification.permission==='granted';
+let swReg=null;
+
+// Registra o Service Worker para notificações em background
+async function registerSW(){
+  if(!('serviceWorker' in navigator)) return;
+  try{
+    swReg=await navigator.serviceWorker.register('./sw.js');
+    console.log('SW registrado:', swReg.scope);
+  }catch(e){
+    console.warn('SW não registrado:', e);
+  }
+}
+registerSW();
+
 function requestNotifications(){
   if(!('Notification' in window)){toast('Browser não suporta notificações');return;}
   try{getAudioCtx().resume();}catch(e){}
-  Notification.requestPermission().then(p=>{
+  Notification.requestPermission().then(async p=>{
     notifEnabled=p==='granted';
     document.getElementById('notif-btn').classList.toggle('enabled',notifEnabled);
-    if(notifEnabled){playAlarmSound();toast('🔔 alertas + som ativados!');}
-    else toast('permissão negada');
+    if(notifEnabled){
+      // garante SW ativo
+      if(!swReg) await registerSW();
+      playAlarmSound();
+      toast('🔔 alertas + som ativados! Funciona mesmo com aba fechada.');
+    } else {
+      toast('Permissão negada. Ative nas configurações do browser.');
+    }
   });
 }
+
 function scheduleNotif(task){
   if(!task.alarm) return;
   const [h,m]=task.alarm.split(':').map(Number);
   const at=new Date(curY,curM,task.day,h,m);
-  const d15=at-Date.now()-15*60*1000;
-  if(d15>0&&notifEnabled) setTimeout(()=>new Notification('🌿 Demanda em 15min',{body:task.title}),d15);
-  const dEx=at-Date.now();
-  if(dEx>0) setTimeout(()=>{
-    if(task.sound) playAlarmSound();
-    if(notifEnabled) new Notification('⏰ '+task.title,{body:'Hora da sua demanda!'});
-    toast('⏰ '+task.title);
-  },dEx);
+
+  // ── aviso 15 min antes ──
+  const t15=at.getTime()-15*60*1000;
+  if(t15>Date.now()){
+    _sendToSW({
+      type:'SCHEDULE_NOTIF',
+      title:'🌿 Demanda em 15 minutos',
+      body: task.title,
+      timestamp: t15,
+      tag: 'dem_15_'+task.id
+    });
+  }
+
+  // ── notificação no horário exato ──
+  const tEx=at.getTime();
+  if(tEx>Date.now()){
+    _sendToSW({
+      type:'SCHEDULE_NOTIF',
+      title:'⏰ ' + task.title,
+      body: 'Hora da sua demanda!',
+      timestamp: tEx,
+      tag: 'dem_ex_'+task.id
+    });
+    // som via setTimeout na página (funciona só com aba aberta)
+    if(task.sound){
+      const diff=tEx-Date.now();
+      setTimeout(()=>{ try{playAlarmSound();}catch(e){} }, diff);
+    }
+  }
+}
+
+function _sendToSW(msg){
+  if(!notifEnabled) return;
+  // tenta via SW (background)
+  if(swReg?.active){
+    swReg.active.postMessage(msg);
+    return;
+  }
+  // fallback: via setTimeout na página (só funciona com aba aberta)
+  const delay=msg.timestamp-Date.now();
+  if(delay<=0) return;
+  setTimeout(()=>{
+    try{ new Notification(msg.title,{body:msg.body,tag:msg.tag}); }catch(e){}
+  }, delay);
 }
 
 // ── TOAST ──
@@ -826,6 +883,11 @@ function renderInsights(done,total,pct,urgent,overdue){
 }
 
 render();
+
+// Reagenda notificações pendentes ao carregar a página
+setTimeout(()=>{
+  if(notifEnabled) tasks.filter(t=>!t.done&&t.alarm).forEach(t=>scheduleNotif(t));
+},1000);
 </script>
 </body>
 </html>
