@@ -415,21 +415,32 @@ if(curM!==now.getMonth()||curY!==now.getFullYear()) injectRecurring();
 
 // ── AUDIO ──
 let audioCtx=null;
-function getAudioCtx(){if(!audioCtx) audioCtx=new(window.AudioContext||window.webkitAudioContext)();return audioCtx;}
-function playAlarmSound(){
+function getAudioCtx(){
+  if(!audioCtx) audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+  return audioCtx;
+}
+
+// Mantém o AudioContext vivo com interações do usuário
+document.addEventListener('click',()=>{ try{ if(audioCtx&&audioCtx.state==='suspended') audioCtx.resume(); }catch(e){} },{passive:true});
+document.addEventListener('keydown',()=>{ try{ if(audioCtx&&audioCtx.state==='suspended') audioCtx.resume(); }catch(e){} },{passive:true});
+
+async function playAlarmSound(){
   try{
     const ctx=getAudioCtx();
+    // garante que o contexto está rodando
+    if(ctx.state==='suspended') await ctx.resume();
+    if(ctx.state!=='running') return;
     [0,.35,.7].forEach(off=>{
       const o=ctx.createOscillator(),g=ctx.createGain();
       o.connect(g);g.connect(ctx.destination);o.type='sine';
       o.frequency.setValueAtTime(660,ctx.currentTime+off);
       o.frequency.setValueAtTime(880,ctx.currentTime+off+.15);
       g.gain.setValueAtTime(0,ctx.currentTime+off);
-      g.gain.linearRampToValueAtTime(.35,ctx.currentTime+off+.02);
+      g.gain.linearRampToValueAtTime(.4,ctx.currentTime+off+.02);
       g.gain.linearRampToValueAtTime(0,ctx.currentTime+off+.3);
       o.start(ctx.currentTime+off);o.stop(ctx.currentTime+off+.35);
     });
-  }catch(e){}
+  }catch(e){ console.warn('playAlarmSound erro:',e); }
 }
 
 // ── NOTIFICATIONS + SERVICE WORKER ──
@@ -465,40 +476,67 @@ function requestNotifications(){
   });
 }
 
+// ── ALARM SCHEDULER ──
+// Guarda alarmes pendentes em memória e verifica a cada 30s
+// Isso evita o problema do AudioContext suspenso em setTimeout longos
+let pendingAlarms=[];
+
 function scheduleNotif(task){
   if(!task.alarm) return;
   const [h,m]=task.alarm.split(':').map(Number);
   const at=new Date(curY,curM,task.day,h,m);
-
-  // ── aviso 15 min antes ──
-  const t15=at.getTime()-15*60*1000;
-  if(t15>Date.now()){
-    _sendToSW({
-      type:'SCHEDULE_NOTIF',
-      title:'🌿 Demanda em 15 minutos',
-      body: task.title,
-      timestamp: t15,
-      tag: 'dem_15_'+task.id
-    });
-  }
-
-  // ── notificação no horário exato ──
   const tEx=at.getTime();
-  if(tEx>Date.now()){
-    _sendToSW({
-      type:'SCHEDULE_NOTIF',
-      title:'⏰ ' + task.title,
-      body: 'Hora da sua demanda!',
-      timestamp: tEx,
-      tag: 'dem_ex_'+task.id
-    });
-    // som via setTimeout na página (funciona só com aba aberta)
-    if(task.sound){
-      const diff=tEx-Date.now();
-      setTimeout(()=>{ try{playAlarmSound();}catch(e){} }, diff);
-    }
-  }
+  const t15=tEx-15*60*1000;
+  const now_=Date.now();
+
+  // remove alarmes antigos do mesmo task
+  pendingAlarms=pendingAlarms.filter(a=>a.taskId!==String(task.id));
+
+  if(t15>now_) pendingAlarms.push({taskId:String(task.id),time:t15,type:'15min',task});
+  if(tEx>now_) pendingAlarms.push({taskId:String(task.id),time:tEx,type:'exact',task});
+
+  // também envia para o SW (notificação visual em background)
+  if(t15>now_) _sendToSW({type:'SCHEDULE_NOTIF',title:'🌿 Demanda em 15 minutos',body:task.title,timestamp:t15,tag:'dem_15_'+task.id});
+  if(tEx>now_) _sendToSW({type:'SCHEDULE_NOTIF',title:'⏰ '+task.title,body:'Hora da sua demanda!',timestamp:tEx,tag:'dem_ex_'+task.id});
 }
+
+// Verifica alarmes a cada 30 segundos
+setInterval(()=>{
+  const now_=Date.now();
+  const fired=pendingAlarms.filter(a=>a.time<=now_+30000&&a.time>now_-30000);
+  fired.forEach(a=>{
+    if(a.type==='exact'){
+      if(a.task.sound){
+        // tenta tocar — se AudioContext estiver suspenso, reagenda com interação
+        playAlarmSound().catch(()=>{});
+      }
+      if(notifEnabled){
+        try{ new Notification('⏰ '+a.task.title,{body:'Hora da sua demanda!',tag:'dem_ex_'+a.task.id}); }catch(e){}
+      }
+      toast('⏰ '+a.task.title);
+    } else {
+      if(notifEnabled){
+        try{ new Notification('🌿 Demanda em 15 minutos',{body:a.task.title,tag:'dem_15_'+a.task.id}); }catch(e){}
+      }
+      toast('⏰ Em 15min: '+a.task.title);
+    }
+  });
+  // remove os disparados
+  if(fired.length) pendingAlarms=pendingAlarms.filter(a=>a.time>now_+30000);
+}, 30000);
+
+// Verificação extra ao entrar em foco na aba (captura alarmes perdidos)
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible'){
+    const now_=Date.now();
+    const missed=pendingAlarms.filter(a=>a.time<=now_&&a.time>now_-5*60*1000);
+    missed.forEach(a=>{
+      if(a.task.sound) playAlarmSound().catch(()=>{});
+      toast('⏰ Perdida: '+a.task.title);
+    });
+    pendingAlarms=pendingAlarms.filter(a=>a.time>now_-5*60*1000);
+  }
+});
 
 function _sendToSW(msg){
   if(!notifEnabled) return;
