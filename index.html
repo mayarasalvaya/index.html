@@ -13,17 +13,17 @@
   --surface2:  #191919;
   --border:    #222222;
   --border2:   #333333;
-  --text:      #e8e4c8;      /* beige claro */
-  --text2:     #a8b898;      /* moss suave */
-  --text3:     #4a6050;      /* verde médio */
-  --accent:    #839958;      /* moss green */
-  --accent-lt: #a8b87a;      /* moss mais claro */
+  --text:      #e8e4c8;
+  --text2:     #a8b898;
+  --text3:     #4a6050;
+  --accent:    #839958;
+  --accent-lt: #a8b87a;
   --accent-bg: rgba(131,153,88,.1);
-  --teal:      #105666;      /* midnight green */
+  --teal:      #105666;
   --teal-lt:   #1a7a8e;
-  --rose:      #D3968C;      /* rosy brown */
+  --rose:      #D3968C;
   --rose-lt:   #e8b5ad;
-  --beige:     #F7F4D5;      /* beige */
+  --beige:     #F7F4D5;
   --urgent:    #D3968C;
   --urgent-bg: rgba(211,150,140,.1);
   --important: #c9a96e;
@@ -31,6 +31,29 @@
   --done-star: #e8c84a;
   --radius:    12px;
   --radius-sm: 7px;
+}
+[data-theme="light"] {
+  --bg:        #f5f2e8;
+  --surface:   #ffffff;
+  --surface2:  #f0ede0;
+  --border:    #ddd9c8;
+  --border2:   #ccc8b4;
+  --text:      #1a2e1a;
+  --text2:     #3a5a3a;
+  --text3:     #7a8a6a;
+  --accent:    #5a7a30;
+  --accent-lt: #6a9238;
+  --accent-bg: rgba(90,122,48,.08);
+  --teal:      #0a4a58;
+  --teal-lt:   #126070;
+  --rose:      #b07060;
+  --rose-lt:   #c88878;
+  --beige:     #2a3a2a;
+  --urgent:    #b07060;
+  --urgent-bg: rgba(176,112,96,.08);
+  --important: #9a7a40;
+  --chill:     #4a8898;
+  --done-star: #b89020;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;font-size:13px;min-height:100vh;padding:2rem}
@@ -46,6 +69,9 @@ body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;font
 .notif-btn{background:var(--surface);border:1px solid var(--border);color:var(--text2);padding:8px 14px;border-radius:var(--radius-sm);cursor:pointer;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.05em;transition:all .15s;text-transform:uppercase}
 .notif-btn:hover{border-color:var(--teal-lt);color:var(--chill)}
 .notif-btn.enabled{border-color:var(--teal-lt);color:var(--chill);background:rgba(16,86,102,.15)}
+.theme-btn{background:var(--surface);border:1px solid var(--border);color:var(--text2);width:34px;height:34px;border-radius:var(--radius-sm);cursor:pointer;font-size:16px;transition:all .15s;display:flex;align-items:center;justify-content:center}
+.theme-btn:hover{border-color:var(--border2);color:var(--text)}
+.header-right{display:flex;align-items:center;gap:8px}
 
 /* ── STATS ── */
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.5rem}
@@ -195,6 +221,37 @@ select.form-input option{background:var(--surface2)}
 .toast{position:fixed;bottom:24px;right:24px;background:var(--accent);color:#0c1f1a;padding:10px 16px;border-radius:var(--radius-sm);font-size:12px;font-family:'DM Mono',monospace;transform:translateY(60px);opacity:0;transition:all .3s cubic-bezier(.4,0,.2,1);z-index:999;pointer-events:none}
 .toast.show{transform:translateY(0);opacity:1}
 
+/* ── MINI CALENDAR WIDGET ── */
+.cal-widget{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;margin-bottom:1.5rem;max-width:320px}
+.cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.cal-title{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.12em}
+.cal-filter-badge{font-size:10px;color:var(--accent-lt);background:rgba(131,153,88,.12);border:1px solid rgba(131,153,88,.25);border-radius:3px;padding:2px 7px;cursor:pointer;transition:all .15s}
+.cal-filter-badge:hover{background:rgba(131,153,88,.22)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.cal-dow{text-align:center;font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;padding:2px 0;margin-bottom:1px}
+.cal-day{min-height:26px;border-radius:4px;padding:2px;cursor:pointer;transition:background .15s;display:flex;flex-direction:column;align-items:center;gap:1px;position:relative}
+.cal-day:hover{background:rgba(255,255,255,.05)}
+.cal-day.today{background:rgba(131,153,88,.12);outline:1px solid rgba(131,153,88,.3)}
+.cal-day.has-tasks.selected,
+.cal-day.selected{background:rgba(131,153,88,.2);outline:1px solid var(--accent)}
+.cal-day.empty-slot{cursor:default;pointer-events:none}
+.cal-day-num{font-size:9px;color:var(--text2);line-height:1;font-family:'DM Mono',monospace}
+.cal-day.today .cal-day-num{color:var(--accent-lt);font-weight:500}
+.cal-day.past-day .cal-day-num{color:var(--text3)}
+.cal-day-dots{display:flex;flex-wrap:wrap;justify-content:center;gap:1px;max-width:22px}
+.cal-dot{width:4px;height:4px;border-radius:50%;flex-shrink:0}
+
+/* ── TASK NOTES ── */
+.task-notes-toggle{background:none;border:1px solid var(--border);color:var(--text3);width:26px;height:26px;border-radius:4px;cursor:pointer;font-size:12px;transition:all .15s;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.task-notes-toggle:hover{border-color:var(--teal-lt);color:var(--chill)}
+.task-notes-toggle.has-note{border-color:rgba(122,184,196,.35);color:var(--chill);background:rgba(122,184,196,.08)}
+.task-notes-wrap{display:none;padding:8px 0 2px 28px;width:100%}
+.task-notes-wrap.open{display:block}
+.task-notes-area{width:100%;background:rgba(255,255,255,.03);border:1px solid var(--border);color:var(--text2);font-family:'DM Mono',monospace;font-size:11px;border-radius:var(--radius-sm);padding:7px 9px;resize:vertical;min-height:52px;outline:none;transition:border-color .15s;line-height:1.6}
+.task-notes-area:focus{border-color:var(--teal-lt)}
+.task-notes-area::placeholder{color:var(--text3)}
+.task.notes-open{flex-wrap:wrap}
+
 @media(max-width:700px){body{padding:1rem}.main{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}.dash-grid{grid-template-columns:1fr}}
 </style>
 </head>
@@ -239,6 +296,10 @@ select.form-input option{background:var(--surface2)}
         <input type="checkbox" id="edit-recur" />
         repete todo mês automaticamente
       </label>
+      <div>
+        <div class="form-label">Notas / detalhes</div>
+        <textarea class="form-input" id="edit-notes" placeholder="Subcategorias, links, detalhes…" style="resize:vertical;min-height:64px;line-height:1.6"></textarea>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="modal-cancel" onclick="closeModal()">cancelar</button>
@@ -257,7 +318,10 @@ select.form-input option{background:var(--surface2)}
       <button onclick="changeMonth(1)">→</button>
     </div>
   </div>
-  <button class="notif-btn" id="notif-btn" onclick="requestNotifications()">🔔 ativar alertas</button>
+  <div class="header-right">
+    <button class="notif-btn" id="notif-btn" onclick="requestNotifications()">🔔 ativar alertas</button>
+    <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Alternar modo claro/escuro">🌙</button>
+  </div>
 </div>
 
 <!-- STATS -->
@@ -294,6 +358,19 @@ select.form-input option{background:var(--surface2)}
       <div class="dash-title">conclusão por categoria</div>
       <div id="dash-completion"></div>
     </div>
+  </div>
+</div>
+
+<!-- MINI CALENDAR WIDGET -->
+<div class="cal-widget">
+  <div class="cal-header">
+    <div class="cal-title" style="cursor:pointer;display:flex;align-items:center;gap:6px" onclick="toggleCalWidget()">
+      <span id="cal-toggle-icon">▾</span> calendário do mês
+    </div>
+    <span class="cal-filter-badge" id="cal-clear-btn" style="display:none" onclick="clearCalFilter()">✕ limpar filtro</span>
+  </div>
+  <div id="cal-body">
+    <div class="cal-grid" id="cal-grid"></div>
   </div>
 </div>
 
@@ -365,6 +442,30 @@ select.form-input option{background:var(--surface2)}
 <div class="toast" id="toast"></div>
 
 <script>
+// ── TEMA CLARO / ESCURO ──
+(function(){
+  const saved=localStorage.getItem('theme');
+  if(saved==='light') document.documentElement.setAttribute('data-theme','light');
+})();
+function toggleTheme(){
+  const isLight=document.documentElement.getAttribute('data-theme')==='light';
+  if(isLight){
+    document.documentElement.removeAttribute('data-theme');
+    localStorage.setItem('theme','dark');
+  } else {
+    document.documentElement.setAttribute('data-theme','light');
+    localStorage.setItem('theme','light');
+  }
+  updateThemeBtn();
+}
+function updateThemeBtn(){
+  const btn=document.getElementById('theme-btn');
+  if(!btn) return;
+  const isLight=document.documentElement.getAttribute('data-theme')==='light';
+  btn.textContent=isLight?'🌑':'🌙';
+  btn.title=isLight?'Modo escuro':'Modo claro';
+}
+
 const MONTHS=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
 let now=new Date(), curM=now.getMonth(), curY=now.getFullYear();
 let selPrio='chill', editId=null, editPrio='chill';
@@ -576,6 +677,7 @@ function openEditModal(id){
   const sel=document.getElementById('edit-cat');
   sel.innerHTML=cats.map(c=>`<option value="${c.id}"${c.id===t.cat?' selected':''}>${c.name}</option>`).join('');
   document.querySelectorAll('#edit-prio-btns .prio-btn').forEach(b=>{b.className='prio-btn';if(b.dataset.p===editPrio)b.classList.add('active-'+editPrio);});
+  document.getElementById('edit-notes').value=taskNotes[id]||'';
   document.getElementById('edit-modal').classList.add('open');
   setTimeout(()=>document.getElementById('edit-title').focus(),100);
 }
@@ -592,12 +694,47 @@ function saveEdit(){
   t.priority=editPrio;
   t.recur=document.getElementById('edit-recur').checked;
   t.sound=editSoundOn;
+  const noteVal=document.getElementById('edit-notes').value;
+  if(noteVal.trim()) taskNotes[String(editId)]=noteVal;
+  else delete taskNotes[String(editId)];
+  saveTaskNotes(taskNotes);
   saveTasks(curM,curY,tasks);closeModal();toast(`"${t.title}" atualizada ✓`);render();
 }
 document.getElementById('edit-modal').addEventListener('click',function(e){if(e.target===this)closeModal();});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
 
 // ── CATEGORIES ──
+// ── TASK NOTES STORAGE ──
+const loadTaskNotes=()=>{try{return JSON.parse(localStorage.getItem('task_notes'))||{};}catch(e){return{};}};
+const saveTaskNotes=n=>localStorage.setItem('task_notes',JSON.stringify(n));
+let taskNotes=loadTaskNotes();
+let openNotesTasks=new Set(); // which task IDs have notes panel open
+
+function toggleTaskNotes(id){
+  id=String(id);
+  if(openNotesTasks.has(id)) openNotesTasks.delete(id);
+  else openNotesTasks.add(id);
+  // toggle without full re-render for smoothness
+  const wrap=document.getElementById('tnotes-'+id);
+  const btn=document.getElementById('tnbtn-'+id);
+  if(wrap){
+    const isOpen=openNotesTasks.has(id);
+    wrap.classList.toggle('open',isOpen);
+    wrap.closest('.task').classList.toggle('notes-open',isOpen);
+    if(btn) btn.classList.toggle('has-note', isOpen||(taskNotes[id]||'').trim().length>0);
+    if(isOpen){ const ta=wrap.querySelector('textarea'); if(ta){ta.focus();} }
+  }
+}
+function saveTaskNote(id,val){
+  id=String(id);
+  if(val.trim()) taskNotes[id]=val;
+  else delete taskNotes[id];
+  saveTaskNotes(taskNotes);
+  // update button state
+  const btn=document.getElementById('tnbtn-'+id);
+  if(btn) btn.classList.toggle('has-note',(taskNotes[id]||'').trim().length>0||(openNotesTasks.has(id)));
+}
+
 function renderCats(){
   const sel=document.getElementById('new-cat');
   sel.innerHTML=cats.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
@@ -747,6 +884,7 @@ function deleteAllRecurring(id){
 }
 function changeMonth(dir){
   curM+=dir;if(curM>11){curM=0;curY++;}if(curM<0){curM=11;curY--;}
+  calFilterDay=null;
   tasks=loadTasks(curM,curY);injectRecurring();render();
 }
 
@@ -829,37 +967,97 @@ function renderDash(){
   compEl.innerHTML=donuts;
 }
 
+// ── MINI CALENDAR ──
+let calFilterDay=null;
+let calCollapsed=(()=>{try{return localStorage.getItem('cal_collapsed')==='1';}catch(e){return false;}})();
+
+function toggleCalWidget(){
+  calCollapsed=!calCollapsed;
+  try{localStorage.setItem('cal_collapsed',calCollapsed?'1':'0');}catch(e){}
+  const body=document.getElementById('cal-body');
+  const icon=document.getElementById('cal-toggle-icon');
+  if(body) body.style.display=calCollapsed?'none':'block';
+  if(icon) icon.textContent=calCollapsed?'▸':'▾';
+}
+
+function renderCalendar(){
+  const grid=document.getElementById('cal-grid');
+  const dows=['dom','seg','ter','qua','qui','sex','sáb'];
+  const daysInMonth=new Date(curY,curM+1,0).getDate();
+  const firstDow=new Date(curY,curM,1).getDay(); // 0=sun
+  const today=now.getDate();
+  const isCurM=(curM===now.getMonth()&&curY===now.getFullYear());
+
+  // build a map: day -> [task colors]
+  const dayMap={};
+  tasks.forEach(t=>{
+    const d=t.day;
+    if(!dayMap[d]) dayMap[d]=[];
+    const cat=cats.find(c=>c.id===t.cat)||{color:'#4a7a60'};
+    dayMap[d].push({color:cat.color,done:t.done});
+  });
+
+  let html='';
+  // day-of-week headers
+  dows.forEach(d=>{ html+=`<div class="cal-dow">${d}</div>`; });
+
+  // empty leading slots
+  for(let i=0;i<firstDow;i++) html+=`<div class="cal-day empty-slot"></div>`;
+
+  // day cells
+  for(let d=1;d<=daysInMonth;d++){
+    const dots=dayMap[d]||[];
+    const isToday=isCurM&&d===today;
+    const isPast=isCurM&&d<today;
+    const isSelected=calFilterDay===d;
+    const hasTasks=dots.length>0;
+    const classes=['cal-day',isToday?'today':'',isPast&&!isToday?'past-day':'',isSelected?'selected':'',hasTasks?'has-tasks':''].filter(Boolean).join(' ');
+    // show up to 5 dots (overflow silently hidden)
+    const dotsHtml=dots.slice(0,5).map(dot=>`<div class="cal-dot" style="background:${dot.color};opacity:${dot.done?.4:1}"></div>`).join('');
+    html+=`<div class="${classes}" onclick="toggleCalFilter(${d})">
+      <span class="cal-day-num">${d}</span>
+      <div class="cal-day-dots">${dotsHtml}</div>
+    </div>`;
+  }
+  grid.innerHTML=html;
+  document.getElementById('cal-clear-btn').style.display=calFilterDay?'inline':'none';
+  const body=document.getElementById('cal-body');
+  const icon=document.getElementById('cal-toggle-icon');
+  if(body) body.style.display=calCollapsed?'none':'block';
+  if(icon) icon.textContent=calCollapsed?'▸':'▾';
+}
+
+function toggleCalFilter(d){
+  calFilterDay= calFilterDay===d ? null : d;
+  renderCalendar();
+  renderTaskList(); // re-render task list with filter
+}
+function clearCalFilter(){
+  calFilterDay=null;
+  renderCalendar();
+  renderTaskList();
+}
+
 // ── RENDER ──
-function render(){
-  document.getElementById('month-label').textContent=`${MONTHS[curM]} ${curY}`;
-  document.getElementById('notif-btn').classList.toggle('enabled',notifEnabled);
+function renderTaskList(){
+  const today=now.getDate(), isCurMRender=(curM===now.getMonth()&&curY===now.getFullYear());
+  let filtered=calFilterDay ? tasks.filter(t=>t.day===calFilterDay) : tasks;
 
-  const done=tasks.filter(t=>t.done).length, total=tasks.length;
-  const isCurMStat=(curM===now.getMonth()&&curY===now.getFullYear());
-  const todayStat=now.getDate();
-  const overdueStat=isCurMStat?tasks.filter(t=>!t.done&&t.day<todayStat).length:0;
-  const recur=tasks.filter(t=>t.recur).length;
-  const pct=total?Math.round(done/total*100):0;
-
-  document.getElementById('s-total').textContent=total;
-  document.getElementById('s-done').textContent=done;
-  document.getElementById('s-overdue').textContent=overdueStat;
-  document.getElementById('s-recur').textContent=recur;
-  document.getElementById('progress').style.width=pct+'%';
-  document.getElementById('task-count-label').textContent=`${total} tarefa${total!==1?'s':''} — ${pct}% concluído`;
-
-  const sorted=[...tasks].sort((a,b)=>{
+  const sorted=[...filtered].sort((a,b)=>{
     const po={urgent:0,important:1,chill:2};
     if(a.done!==b.done) return a.done?1:-1;
     if((po[a.priority]||2)!==(po[b.priority]||2)) return (po[a.priority]||2)-(po[b.priority]||2);
     return a.day-b.day;
   });
 
-  const today=now.getDate(), isCurMRender=(curM===now.getMonth()&&curY===now.getFullYear());
-  const list=document.getElementById('tasks-list');
+  const label=calFilterDay
+    ? `${sorted.length} tarefa${sorted.length!==1?'s':''} — dia ${calFilterDay}`
+    : `${tasks.length} tarefa${tasks.length!==1?'s':''} — ${Math.round((tasks.filter(t=>t.done).length/(tasks.length||1))*100)}% concluído`;
+  document.getElementById('task-count-label').textContent=label;
 
+  const list=document.getElementById('tasks-list');
   if(!sorted.length){
-    list.innerHTML=`<div class="empty"><span class="empty-icon">✿</span>nenhuma demanda este mês<br><span style="font-size:10px;color:var(--text3)">adicione pelo formulário ao lado</span></div>`;
+    list.innerHTML=`<div class="empty"><span class="empty-icon">${calFilterDay?'📅':'✿'}</span>${calFilterDay?`nenhuma demanda no dia ${calFilterDay}`:'nenhuma demanda este mês'}<br><span style="font-size:10px;color:var(--text3)">${calFilterDay?'<a onclick="clearCalFilter()" style="color:var(--accent);cursor:pointer">← ver todas</a>':'adicione pelo formulário ao lado'}</span></div>`;
   } else {
     list.innerHTML=sorted.map(t=>{
       const cat=cats.find(c=>c.id===t.cat)||{color:'#4a7a60',name:t.cat||'—'};
@@ -869,7 +1067,10 @@ function render(){
       const isOverdue=isCurMRender&&!t.done&&t.day<today;
       const dayTag=`<span class="tag tag-day" onclick="startDayEdit(event,'${t.id}')" title="Clique para alterar o prazo">dia ${t.day}</span>`;
       const prioEmoji={urgent:'🌸',important:'🌿',chill:'🌊'}[t.priority||'chill'];
-      return `<div class="task p-${t.priority||'chill'} ${t.done?'done':''} ${isOverdue?'overdue':''}" style="${bgStyle}">
+      const noteOpen=openNotesTasks.has(String(t.id));
+      const hasNote=(taskNotes[String(t.id)]||'').trim().length>0;
+      const noteVal=(taskNotes[String(t.id)]||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      return `<div class="task p-${t.priority||'chill'} ${t.done?'done':''} ${isOverdue?'overdue':''} ${noteOpen?'notes-open':''}" style="${bgStyle}">
         <span class="task-prio-badge">${prioEmoji}</span>
         <div class="task-check ${t.done?'checked':''}" onclick="toggleTask('${t.id}')"></div>
         <span class="task-star">★</span>
@@ -887,14 +1088,39 @@ function render(){
           </div>
         </div>
         <div class="task-actions">
+          <button id="tnbtn-${t.id}" class="task-notes-toggle${(hasNote||noteOpen)?' has-note':''}" onclick="toggleTaskNotes('${t.id}')" title="Notas / detalhes">✏︎</button>
           <button class="task-btn edit" onclick="openEditModal('${t.id}')" title="Editar">✎</button>
           <button class="task-btn del" onclick="deleteTask('${t.id}')" title="Apagar">×</button>
+        </div>
+        <div id="tnotes-${t.id}" class="task-notes-wrap${noteOpen?' open':''}">
+          <textarea class="task-notes-area" placeholder="Anote detalhes, subcategorias, links…" oninput="saveTaskNote('${t.id}',this.value)">${noteVal}</textarea>
         </div>
       </div>`;
     }).join('');
   }
+}
+
+function render(){
+  document.getElementById('month-label').textContent=`${MONTHS[curM]} ${curY}`;
+  document.getElementById('notif-btn').classList.toggle('enabled',notifEnabled);
+  updateThemeBtn();
+
+  const done=tasks.filter(t=>t.done).length, total=tasks.length;
+  const isCurMStat=(curM===now.getMonth()&&curY===now.getFullYear());
+  const todayStat=now.getDate();
+  const overdueStat=isCurMStat?tasks.filter(t=>!t.done&&t.day<todayStat).length:0;
+  const recur=tasks.filter(t=>t.recur).length;
+  const pct=total?Math.round(done/total*100):0;
+
+  document.getElementById('s-total').textContent=total;
+  document.getElementById('s-done').textContent=done;
+  document.getElementById('s-overdue').textContent=overdueStat;
+  document.getElementById('s-recur').textContent=recur;
+  document.getElementById('progress').style.width=pct+'%';
 
   const urgentCount=tasks.filter(t=>t.priority==='urgent'&&!t.done).length;
+  renderCalendar();
+  renderTaskList();
   renderInsights(done,total,pct,urgentCount,overdueStat);
   renderCats();
   renderDash();
