@@ -4,6 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Calendário de Demandas</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#14181a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Demandas">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Fraunces:ital,wght@0,300;0,500;0,700;1,300&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -84,7 +92,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;font
 
 /* ── DASHBOARD ── */
 .dash{margin-bottom:1.5rem}
-.dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.dash-grid{display:grid;grid-template-columns:1fr;gap:10px}
 .dash-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px}
 .dash-title{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px}
 .cat-bar-row{display:flex;flex-direction:column;gap:7px}
@@ -137,8 +145,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;font
 .tag-alarm{background:rgba(201,169,110,.08);color:var(--important);border:1px solid rgba(201,169,110,.2)}
 .tag-recur{background:rgba(122,184,196,.08);color:var(--chill);border:1px solid rgba(122,184,196,.2)}
 .tag-done-badge{background:rgba(232,200,74,.08);color:var(--done-star);border:1px solid rgba(232,200,74,.2)}
-.task-actions{display:flex;gap:4px;opacity:0;transition:opacity .15s;flex-shrink:0}
-.task:hover .task-actions{opacity:1}
+.task-actions{display:flex;gap:4px;flex-shrink:0}
 .task-btn{background:rgba(255,255,255,.06);border:1px solid var(--border2);color:var(--text2);width:26px;height:26px;border-radius:4px;cursor:pointer;font-size:13px;transition:all .15s;display:flex;align-items:center;justify-content:center}
 .task-btn:hover{color:var(--text)}
 .task-btn.edit:hover{border-color:var(--accent);color:var(--accent-lt);background:rgba(131,153,88,.12)}
@@ -351,12 +358,12 @@ select.form-input option{background:var(--surface2)}
 <div class="dash">
   <div class="dash-grid">
     <div class="dash-card">
-      <div class="dash-title">demandas por categoria</div>
-      <div class="cat-bar-row" id="dash-bars"></div>
-    </div>
-    <div class="dash-card">
-      <div class="dash-title">conclusão por categoria</div>
-      <div id="dash-completion"></div>
+      <div class="dash-title" style="cursor:pointer;display:flex;align-items:center;gap:6px" onclick="toggleDash()">
+        <span id="dash-toggle-icon">▾</span> demandas por categoria
+      </div>
+      <div id="dash-body">
+        <div class="cat-bar-row" id="dash-bars"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -528,18 +535,17 @@ document.addEventListener('keydown',()=>{ try{ if(audioCtx&&audioCtx.state==='su
 async function playAlarmSound(){
   try{
     const ctx=getAudioCtx();
-    // garante que o contexto está rodando
     if(ctx.state==='suspended') await ctx.resume();
     if(ctx.state!=='running') return;
-    [0,.35,.7].forEach(off=>{
+    // Som: Notificação pop (bipe curto + nota alta)
+    [[880,0,.08,.3],[1174,.1,.12,.25]].forEach(([freq,off,dur,vol])=>{
       const o=ctx.createOscillator(),g=ctx.createGain();
       o.connect(g);g.connect(ctx.destination);o.type='sine';
-      o.frequency.setValueAtTime(660,ctx.currentTime+off);
-      o.frequency.setValueAtTime(880,ctx.currentTime+off+.15);
+      o.frequency.setValueAtTime(freq,ctx.currentTime+off);
       g.gain.setValueAtTime(0,ctx.currentTime+off);
-      g.gain.linearRampToValueAtTime(.4,ctx.currentTime+off+.02);
-      g.gain.linearRampToValueAtTime(0,ctx.currentTime+off+.3);
-      o.start(ctx.currentTime+off);o.stop(ctx.currentTime+off+.35);
+      g.gain.linearRampToValueAtTime(vol,ctx.currentTime+off+.01);
+      g.gain.linearRampToValueAtTime(0,ctx.currentTime+off+dur);
+      o.start(ctx.currentTime+off);o.stop(ctx.currentTime+off+dur+.05);
     });
   }catch(e){ console.warn('playAlarmSound erro:',e); }
 }
@@ -908,8 +914,23 @@ function commitDayEdit(id,val){
 }
 
 // ── DASHBOARD ──
+let dashCollapsed=(()=>{try{return localStorage.getItem('dash_collapsed')==='1';}catch(e){return false;}})();
+
+function toggleDash(){
+  dashCollapsed=!dashCollapsed;
+  try{localStorage.setItem('dash_collapsed',dashCollapsed?'1':'0');}catch(e){}
+  const body=document.getElementById('dash-body');
+  const icon=document.getElementById('dash-toggle-icon');
+  if(body) body.style.display=dashCollapsed?'none':'block';
+  if(icon) icon.textContent=dashCollapsed?'▸':'▾';
+}
+
 function renderDash(){
-  // bars: demandas por categoria
+  const body=document.getElementById('dash-body');
+  const icon=document.getElementById('dash-toggle-icon');
+  if(body) body.style.display=dashCollapsed?'none':'block';
+  if(icon) icon.textContent=dashCollapsed?'▸':'▾';
+
   const barsEl=document.getElementById('dash-bars');
   const catData=cats.map(c=>{
     const total=tasks.filter(t=>t.cat===c.id).length;
@@ -932,39 +953,6 @@ function renderDash(){
         </div>
       </div>`).join('');
   }
-
-  // completion rings per category
-  const compEl=document.getElementById('dash-completion');
-  if(!catData.length){
-    compEl.innerHTML=`<div class="empty-dash">sem dados</div>`;
-    return;
-  }
-  // mini SVG donut per category
-  const size=56, cx=28, cy=28, r=20, circ=2*Math.PI*r;
-  const donuts=catData.slice(0,5).map(c=>{
-    const pct=c.total>0?c.done/c.total:0;
-    const dash=pct*circ;
-    const gap=circ-dash;
-    return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-      <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="flex-shrink:0">
-        <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="7"/>
-        <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${c.color}" stroke-width="7"
-          stroke-dasharray="${dash.toFixed(1)} ${gap.toFixed(1)}"
-          stroke-linecap="round"
-          transform="rotate(-90 ${cx} ${cy})"
-          opacity="${pct>0?1:0.2}"/>
-        <text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="central"
-          font-family="DM Mono,monospace" font-size="9" fill="${c.color}">
-          ${Math.round(pct*100)}%
-        </text>
-      </svg>
-      <div>
-        <div style="font-size:11px;color:${c.color};margin-bottom:1px">${c.name}</div>
-        <div style="font-size:10px;color:var(--text3)">${c.done} de ${c.total} feitas</div>
-      </div>
-    </div>`;
-  }).join('');
-  compEl.innerHTML=donuts;
 }
 
 // ── MINI CALENDAR ──
