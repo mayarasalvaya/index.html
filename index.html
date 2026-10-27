@@ -350,6 +350,10 @@ select.form-input option{background:var(--surface2)}
 .alarm-item-btns{display:flex;gap:6px;flex-wrap:wrap}
 .alarm-item-btns button{flex:1;min-width:84px;padding:8px 6px;border-radius:var(--radius-sm);font-family:'DM Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.06em;cursor:pointer;border:1px solid var(--border2);background:var(--surface);color:var(--text2)}
 .alarm-item-btns button.primary{background:var(--accent);border-color:var(--accent);color:#0a0a0a;font-weight:500}
+.alarm-pop-timer{height:3px;background:var(--border);border-radius:2px;margin-top:14px;overflow:hidden}
+#alarm-pop-bar{height:100%;width:100%;background:var(--accent);border-radius:2px;transform-origin:left}
+#alarm-pop-bar.running{animation:popbar 40s linear forwards}
+@keyframes popbar{from{transform:scaleX(1)}to{transform:scaleX(0)}}
 @media(prefers-reduced-motion:reduce){.alarm-pop-bell{animation:none}}
 
 @media(max-width:700px){body{padding:1rem}.main{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}.dash-grid{grid-template-columns:1fr}}
@@ -432,9 +436,11 @@ select.form-input option{background:var(--surface2)}
 <!-- POP-UP DO ALARME -->
 <div class="modal-overlay" id="alarm-modal">
   <div class="modal alarm-pop" role="alertdialog" aria-labelledby="alarm-pop-head">
+    <button class="modal-close" onclick="closeAlarmPopup()" title="Fechar" aria-label="Fechar">×</button>
     <div class="alarm-pop-bell">⏰</div>
     <div class="modal-title" id="alarm-pop-head">hora da demanda</div>
     <div class="alarm-pop-list" id="alarm-pop-list"></div>
+    <div class="alarm-pop-timer" aria-hidden="true"><div id="alarm-pop-bar"></div></div>
   </div>
 </div>
 
@@ -753,7 +759,7 @@ async function registerSW(){
 }
 registerSW();
 
-// Cliques nos botões da notificação do sistema (✓ concluir / +10 min)
+// Cliques nos botões da notificação do sistema (✓ concluir / +15 min)
 if('serviceWorker' in navigator){
   navigator.serviceWorker.addEventListener('message',e=>{
     const d=e.data||{};
@@ -785,7 +791,7 @@ async function showSysNotif(title,body,tag,taskId){
   try{
     const reg=swReg||(navigator.serviceWorker&&await navigator.serviceWorker.getRegistration());
     if(reg){
-      await reg.showNotification(title,{...base,actions:[{action:'done',title:'✓ Concluir'},{action:'snooze',title:'+10 min'}]});
+      await reg.showNotification(title,{...base,actions:[{action:'done',title:'✓ Concluir'},{action:'snooze',title:'+15 min'}]});
       return;
     }
   }catch(e){ console.warn('showNotification via SW falhou:',e); }
@@ -812,18 +818,33 @@ const escHtml=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 function renderAlarmPopup(){
   const modal=document.getElementById('alarm-modal');
   if(!alarmQueue.length){modal.classList.remove('open');return;}
-  document.getElementById('alarm-pop-head').textContent=alarmQueue.some(a=>a.kind==='exact')?'hora da demanda':'daqui a 15 minutos';
+  document.getElementById('alarm-pop-head').textContent=alarmQueue.some(a=>a.kind==='exact')?'hora da demanda':'lembrete adiado';
   document.getElementById('alarm-pop-list').innerHTML=alarmQueue.map((a,i)=>`
     <div class="alarm-item">
       <div class="alarm-item-kind${a.kind==='soon'?' soon':''}">${a.kind==='soon'?'em 15 min':a.kind==='snooze'?'lembrete adiado':'agora'} · ${escHtml(a.time)}</div>
       <div class="alarm-item-title">${escHtml(a.title)}</div>
       <div class="alarm-item-btns">
         ${a.taskId!=='teste'?`<button class="primary" onclick="alarmAction(${i},'done')">✓ concluir</button>`:''}
-        <button onclick="alarmAction(${i},'snooze')">+10 min</button>
-        <button onclick="alarmAction(${i},'ok')">ok</button>
+        <button onclick="alarmAction(${i},'snooze')">+15 min</button>
+        <button onclick="alarmAction(${i},'ok')">fechar</button>
       </div>
     </div>`).join('');
   modal.classList.add('open');
+}
+const POPUP_SECONDS=40;
+let popTimer=null;
+function armPopTimer(){
+  clearTimeout(popTimer); popTimer=null;
+  const bar=document.getElementById('alarm-pop-bar');
+  bar.classList.remove('running');
+  if(!alarmQueue.length||document.hidden) return;
+  void bar.offsetWidth; // reinicia a animação
+  bar.classList.add('running');
+  popTimer=setTimeout(closeAlarmPopup,POPUP_SECONDS*1000);
+}
+function closeAlarmPopup(){
+  clearTimeout(popTimer); popTimer=null;
+  alarmQueue=[]; renderAlarmPopup();
 }
 function alarmAction(i,action){
   const a=alarmQueue[i]; if(!a) return;
@@ -845,14 +866,14 @@ function markTaskDoneById(id){
   }
 }
 
-// ── ADIAR (+10 min) ──
+// ── ADIAR (+15 min) ──
 const loadSnoozes=()=>{try{return JSON.parse(localStorage.getItem('alarm_snoozes'))||[];}catch(e){return[];}};
 const saveSnoozes=s=>{try{localStorage.setItem('alarm_snoozes',JSON.stringify(s));}catch(e){}};
 function snoozeAlarm(taskId,title){
   const s=loadSnoozes().filter(x=>String(x.taskId)!==String(taskId));
-  s.push({taskId:String(taskId),title,at:Date.now()+10*60*1000});
+  s.push({taskId:String(taskId),title,at:Date.now()+15*60*1000});
   saveSnoozes(s);
-  toast('⏰ Vou lembrar de novo em 10 min');
+  toast('⏰ Vou lembrar de novo em 15 min');
 }
 
 // ── DISPARO ──
@@ -861,6 +882,7 @@ function fireAlarm(task,kind){
   alarmQueue=alarmQueue.filter(a=>!(String(a.taskId)===String(task.id)&&a.kind===kind));
   alarmQueue.push({taskId:String(task.id),title:task.title,kind,time});
   renderAlarmPopup();
+  armPopTimer();
 
   if(task.sound) playAlarmSound(kind==='soon'?1:3);
 
@@ -892,8 +914,6 @@ function checkAlarms(){
     const key=`${t.id}_${y}-${m+1}-${d}`;
     if(now_>=at&&now_-at<15*60*1000){
       if(!fired[key+'_ex']){ markFired(key+'_ex'); fireAlarm(t,'exact'); }
-    } else if(now_>=at-15*60*1000&&now_<at){
-      if(!fired[key+'_15']){ markFired(key+'_15'); fireAlarm(t,'soon'); }
     }
   });
   const sn=loadSnoozes();
@@ -906,7 +926,7 @@ function checkAlarms(){
 setInterval(checkAlarms,15000);
 setTimeout(checkAlarms,1500);
 document.addEventListener('visibilitychange',()=>{
-  if(document.visibilityState==='visible'){ stopBlink(); checkAlarms(); }
+  if(document.visibilityState==='visible'){ stopBlink(); checkAlarms(); armPopTimer(); }
 });
 window.addEventListener('focus',stopBlink);
 
@@ -981,7 +1001,7 @@ function saveEdit(){
   saveTasks(curM,curY,tasks);closeModal();toast(`"${t.title}" atualizada ✓`);render();
 }
 document.getElementById('edit-modal').addEventListener('click',function(e){if(e.target===this)closeModal();});
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeSoundModal();}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeSoundModal();if(alarmQueue.length)closeAlarmPopup();}});
 
 // ── CATEGORIES ──
 // ── TASK NOTES STORAGE ──
