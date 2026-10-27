@@ -37,6 +37,7 @@
   --important: #c9a96e;
   --chill:     #7ab8c4;
   --done-star: #e8c84a;
+  --task-fade: rgba(10,10,10,.5);
   --radius:    12px;
   --radius-sm: 7px;
 }
@@ -62,6 +63,7 @@
   --important: #9a7a40;
   --chill:     #4a8898;
   --done-star: #b89020;
+  --task-fade: rgba(255,255,255,.7);
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;font-size:13px;min-height:100vh;padding:2rem}
@@ -151,8 +153,51 @@ body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;font
 .task-btn.edit:hover{border-color:var(--accent);color:var(--accent-lt);background:rgba(131,153,88,.12)}
 .task-btn.del:hover{border-color:var(--urgent);color:var(--rose-lt);background:rgba(211,150,140,.12)}
 /* priority emoji — bottom right corner */
-.task-prio-badge{position:absolute;bottom:8px;right:10px;font-size:13px;line-height:1;opacity:.55;pointer-events:none;transition:opacity .15s}
+.task-prio-badge{font-size:13px;line-height:1;opacity:.6;pointer-events:none;transition:opacity .15s;align-self:center;margin-right:4px;display:inline-block}
 .task:hover .task-prio-badge{opacity:.9}
+.task.p-urgent:not(.done) .task-prio-badge{opacity:1;font-size:15px;animation:heartbeat 1.6s ease-in-out infinite}
+@keyframes heartbeat{0%,100%{transform:scale(1)}15%{transform:scale(1.25)}30%{transform:scale(1)}45%{transform:scale(1.18)}60%{transform:scale(1)}}
+
+/* ── GRUPOS POR URGÊNCIA ── */
+.tasks-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.tasks-head .section-label{margin-bottom:0}
+.view-toggle{display:inline-flex;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;background:var(--surface)}
+.view-toggle button{background:none;border:none;color:var(--text3);font-family:'DM Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.06em;padding:6px 10px;cursor:pointer;transition:all .15s}
+.view-toggle button+button{border-left:1px solid var(--border)}
+.view-toggle button[aria-pressed="true"]{background:var(--accent-bg);color:var(--accent-lt)}
+.view-toggle button:focus-visible{outline:1px solid var(--accent);outline-offset:-1px}
+
+.tasks-area{container-type:inline-size}
+.prio-groups{display:flex;flex-direction:column;gap:16px}
+.prio-group{min-width:0}
+.prio-group-head{display:flex;align-items:center;gap:7px;padding:0 2px 7px;margin-bottom:8px;border-bottom:1px solid var(--g-line)}
+.prio-group-emoji{font-size:15px;line-height:1}
+.prio-group-name{font-family:'Fraunces',serif;font-style:italic;font-size:1rem;color:var(--g-color);letter-spacing:-.01em}
+.prio-group-count{margin-left:auto;font-size:10px;color:var(--g-color);background:var(--g-bg);border:1px solid var(--g-line);border-radius:10px;padding:1px 8px;font-variant-numeric:tabular-nums}
+.prio-group-body{display:flex;flex-direction:column;gap:8px}
+.prio-group-empty{font-size:11px;color:var(--text3);text-align:center;padding:14px 8px;border:1px dashed var(--border);border-radius:var(--radius)}
+.g-urgent{--g-color:var(--urgent);--g-bg:var(--urgent-bg);--g-line:rgba(211,150,140,.35)}
+.g-important{--g-color:var(--important);--g-bg:rgba(201,169,110,.1);--g-line:rgba(201,169,110,.35)}
+.g-chill{--g-color:var(--chill);--g-bg:rgba(122,184,196,.1);--g-line:rgba(122,184,196,.35)}
+.g-urgent .prio-group-emoji{animation:heartbeat 1.6s ease-in-out infinite}
+
+/* lista: grupos um embaixo do outro; grupos vazios somem */
+.prio-groups.view-list .prio-group.is-empty{display:none}
+
+/* grade: três colunas lado a lado */
+.prio-groups.view-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:start}
+.prio-groups.view-grid .prio-group{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px}
+.prio-groups.view-grid .task{flex-wrap:wrap;padding:11px 12px}
+.prio-groups.view-grid .task-title{white-space:normal;overflow-wrap:anywhere}
+.prio-groups.view-grid .task-actions{width:100%;justify-content:flex-end;order:5}
+.prio-groups.view-grid .task-prio-badge{margin-right:auto;margin-left:28px}
+.prio-groups.view-grid .task-notes-wrap{order:6;padding-left:0}
+/* coluna estreita (celular): colunas deslizam para o lado */
+@container (max-width:640px){
+  .prio-groups.view-grid{display:flex;flex-direction:row;overflow-x:auto;scroll-snap-type:x mandatory;gap:10px;padding-bottom:6px;-webkit-overflow-scrolling:touch}
+  .prio-groups.view-grid .prio-group{flex:0 0 84%;scroll-snap-align:start}
+}
+@media(prefers-reduced-motion:reduce){.task.p-urgent:not(.done) .task-prio-badge,.g-urgent .prio-group-emoji{animation:none}}
 
 /* ── SIDEBAR ── */
 .sidebar{display:flex;flex-direction:column;gap:14px}
@@ -337,9 +382,9 @@ select.form-input option{background:var(--surface2)}
       <div>
         <div class="form-label">Prioridade</div>
         <div class="priority-btns" id="edit-prio-btns">
-          <button class="prio-btn" data-p="urgent" onclick="setEditPrio(this,'urgent')">🌸 urgente</button>
-          <button class="prio-btn" data-p="important" onclick="setEditPrio(this,'important')">🌿 import.</button>
-          <button class="prio-btn" data-p="chill" onclick="setEditPrio(this,'chill')">🌊 tranq.</button>
+          <button class="prio-btn" data-p="urgent" onclick="setEditPrio(this,'urgent')">❣️ urgente</button>
+          <button class="prio-btn" data-p="important" onclick="setEditPrio(this,'important')">🌷 import.</button>
+          <button class="prio-btn" data-p="chill" onclick="setEditPrio(this,'chill')">🦋 tranq.</button>
         </div>
       </div>
       <label class="recur-check">
@@ -454,8 +499,14 @@ select.form-input option{background:var(--surface2)}
 <!-- MAIN -->
 <div class="main">
   <div>
-    <div class="section-label" id="task-count-label">tarefas</div>
-    <div class="tasks-wrap" id="tasks-list"></div>
+    <div class="tasks-head">
+      <div class="section-label" id="task-count-label">tarefas</div>
+      <div class="view-toggle" role="group" aria-label="Modo de visualização">
+        <button id="view-grid" onclick="setTaskView('grid')" aria-pressed="false">▦ grade</button>
+        <button id="view-list" onclick="setTaskView('list')" aria-pressed="false">☰ lista</button>
+      </div>
+    </div>
+    <div class="tasks-area" id="tasks-list"></div>
   </div>
 
   <div class="sidebar">
@@ -488,9 +539,9 @@ select.form-input option{background:var(--surface2)}
         <div>
           <div class="form-label">Prioridade</div>
           <div class="priority-btns">
-            <button class="prio-btn" data-p="urgent" onclick="setPrio(this,'urgent')">🌸 urgente</button>
-            <button class="prio-btn" data-p="important" onclick="setPrio(this,'important')">🌿 import.</button>
-            <button class="prio-btn active-chill" data-p="chill" onclick="setPrio(this,'chill')">🌊 tranq.</button>
+            <button class="prio-btn" data-p="urgent" onclick="setPrio(this,'urgent')">❣️ urgente</button>
+            <button class="prio-btn" data-p="important" onclick="setPrio(this,'important')">🌷 import.</button>
+            <button class="prio-btn active-chill" data-p="chill" onclick="setPrio(this,'chill')">🦋 tranq.</button>
           </div>
         </div>
         <label class="recur-check">
@@ -800,7 +851,7 @@ function fireAlarm(task,kind){
 
   if(task.sound) playAlarmSound(kind==='soon'?1:3);
 
-  const head=kind==='soon'?'🌿 Em 15 minutos':kind==='snooze'?'⏰ Lembrete adiado':'⏰ Hora da demanda';
+  const head=kind==='soon'?'🌷 Em 15 minutos':kind==='snooze'?'⏰ Lembrete adiado':'⏰ Hora da demanda';
   showSysNotif(head+': '+task.title, kind==='soon'?`Começa às ${task.alarm}`:'Toque para abrir o calendário', 'dem_'+kind+'_'+task.id, task.id);
   startBlink('⏰ '+task.title);
 }
@@ -1276,22 +1327,22 @@ function renderTaskList(){
   document.getElementById('task-count-label').textContent=label;
 
   const list=document.getElementById('tasks-list');
+  updateViewToggle();
   if(!sorted.length){
     list.innerHTML=`<div class="empty"><span class="empty-icon">${calFilterDay?'📅':'✿'}</span>${calFilterDay?`nenhuma demanda no dia ${calFilterDay}`:'nenhuma demanda este mês'}<br><span style="font-size:10px;color:var(--text3)">${calFilterDay?'<a onclick="clearCalFilter()" style="color:var(--accent);cursor:pointer">← ver todas</a>':'adicione pelo formulário ao lado'}</span></div>`;
   } else {
-    list.innerHTML=sorted.map(t=>{
+    const cardHtml=t=>{
       const cat=cats.find(c=>c.id===t.cat)||{color:'#4a7a60',name:t.cat||'—'};
       const hex=cat.color.replace('#','');
       const r=parseInt(hex.substring(0,2),16),g=parseInt(hex.substring(2,4),16),b=parseInt(hex.substring(4,6),16);
-      const bgStyle=`background:linear-gradient(135deg,rgba(${r},${g},${b},.12) 0%,rgba(${r},${g},${b},.05) 55%,rgba(10,10,10,.5) 100%);border-color:rgba(${r},${g},${b},.28);`;
+      const bgStyle=`background:linear-gradient(135deg,rgba(${r},${g},${b},.12) 0%,rgba(${r},${g},${b},.05) 55%,var(--task-fade) 100%);border-color:rgba(${r},${g},${b},.28);`;
       const isOverdue=isCurMRender&&!t.done&&taskEnd(t)<today;
       const dayTag=`<span class="tag tag-day" onclick="startDayEdit(event,'${t.id}')" title="Clique para alterar o prazo">dia ${dayLabel(t)}</span>`;
-      const prioEmoji={urgent:'🌸',important:'🌿',chill:'🌊'}[t.priority||'chill'];
+      const prioEmoji=(PRIO[t.priority]||PRIO.chill).e;
       const noteOpen=openNotesTasks.has(String(t.id));
       const hasNote=(taskNotes[String(t.id)]||'').trim().length>0;
       const noteVal=(taskNotes[String(t.id)]||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
       return `<div class="task p-${t.priority||'chill'} ${t.done?'done':''} ${isOverdue?'overdue':''} ${noteOpen?'notes-open':''}" style="${bgStyle}">
-        <span class="task-prio-badge">${prioEmoji}</span>
         <div class="task-check ${t.done?'checked':''}" onclick="toggleTask('${t.id}')"></div>
         <span class="task-star">★</span>
         <div class="task-body">
@@ -1308,6 +1359,7 @@ function renderTaskList(){
           </div>
         </div>
         <div class="task-actions">
+          <span class="task-prio-badge" aria-hidden="true">${prioEmoji}</span>
           <button id="tnbtn-${t.id}" class="task-notes-toggle${(hasNote||noteOpen)?' has-note':''}" onclick="toggleTaskNotes('${t.id}')" title="Notas / detalhes">✏︎</button>
           <button class="task-btn edit" onclick="openEditModal('${t.id}')" title="Editar">✎</button>
           <button class="task-btn del" onclick="deleteTask('${t.id}')" title="Apagar">×</button>
@@ -1316,8 +1368,34 @@ function renderTaskList(){
           <textarea class="task-notes-area" placeholder="Anote detalhes, subcategorias, links…" oninput="saveTaskNote('${t.id}',this.value)">${noteVal}</textarea>
         </div>
       </div>`;
-    }).join('');
+    };
+    list.innerHTML=`<div class="prio-groups view-${taskView}">`+PRIO_ORDER.map(p=>{
+      const items=sorted.filter(t=>(PRIO[t.priority]?t.priority:'chill')===p);
+      const pending=items.filter(t=>!t.done).length;
+      return `<section class="prio-group g-${p}${items.length?'':' is-empty'}">
+        <div class="prio-group-head">
+          <span class="prio-group-emoji">${PRIO[p].e}</span>
+          <span class="prio-group-name">${PRIO[p].n}</span>
+          <span class="prio-group-count" title="pendentes / total">${pending}/${items.length}</span>
+        </div>
+        <div class="prio-group-body">${items.length?items.map(cardHtml).join(''):`<div class="prio-group-empty">nada aqui ✿</div>`}</div>
+      </section>`;
+    }).join('')+`</div>`;
   }
+}
+
+// ── PRIORIDADES + MODO DE VISUALIZAÇÃO ──
+const PRIO={urgent:{e:'❣️',n:'urgente'},important:{e:'🌷',n:'importante'},chill:{e:'🦋',n:'tranquilo'}};
+const PRIO_ORDER=['urgent','important','chill'];
+let taskView=(()=>{try{return localStorage.getItem('task_view')==='list'?'list':'grid';}catch(e){return 'grid';}})();
+function setTaskView(v){
+  taskView=v==='list'?'list':'grid';
+  try{localStorage.setItem('task_view',taskView);}catch(e){}
+  renderTaskList();
+}
+function updateViewToggle(){
+  document.getElementById('view-grid').setAttribute('aria-pressed',String(taskView==='grid'));
+  document.getElementById('view-list').setAttribute('aria-pressed',String(taskView==='list'));
 }
 
 function render(){
