@@ -31,6 +31,6 @@ self.addEventListener('notificationclick', e => {
       try { await client.focus(); } catch (err) {}
       return;
     }
-    client = await self.clients.openWindow('./calendario-demandas.html');
+    client = await self.clients.openWindow('./');
   })());
 });

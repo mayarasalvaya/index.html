@@ -259,6 +259,45 @@ select.form-input option{background:var(--surface2)}
 .task-notes-area::placeholder{color:var(--text3)}
 .task.notes-open{flex-wrap:wrap}
 
+/* Período */
+.opt-hint{text-transform:none;letter-spacing:0;color:var(--text3);opacity:.8}
+.cal-day.in-filter-range{background:rgba(131,153,88,.08)}
+
+/* Seletor de toque */
+.snd-intro{font-size:11px;color:var(--text2);margin:-8px 0 14px;line-height:1.5}
+.snd-list{display:flex;flex-direction:column;gap:6px;max-height:52vh;overflow-y:auto;padding-right:2px}
+.snd-item{display:flex;align-items:center;gap:10px;border:1px solid var(--border);background:var(--surface2);border-radius:var(--radius-sm);padding:8px 10px;cursor:pointer;transition:border-color .15s,background .15s}
+.snd-item:hover{border-color:var(--border2)}
+.snd-item.sel{border-color:var(--accent);background:var(--accent-bg)}
+.snd-radio{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--border2);flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.snd-item.sel .snd-radio{border-color:var(--accent)}
+.snd-item.sel .snd-radio::after{content:'';width:8px;height:8px;border-radius:50%;background:var(--accent)}
+.snd-info{flex:1;min-width:0}
+.snd-name{font-size:12px;color:var(--text)}
+.snd-desc{font-size:10px;color:var(--text3);line-height:1.4}
+.snd-play{flex-shrink:0;width:32px;height:32px;border-radius:50%;border:1px solid var(--border2);background:var(--surface);color:var(--text2);cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.snd-play:hover,.snd-play.playing{border-color:var(--accent);color:var(--accent-lt)}
+.snd-test{display:flex;align-items:center;gap:12px;margin-top:16px;padding-top:14px;border-top:1px solid var(--border);flex-wrap:wrap}
+.snd-test-txt{flex:1;min-width:180px;display:flex;flex-direction:column;gap:2px;font-size:11px;color:var(--text2);line-height:1.5}
+.snd-test-txt strong{color:var(--text);font-weight:500}
+.snd-test .modal-save{flex:0 0 auto;padding:10px 14px}
+
+/* Pop-up do alarme */
+#alarm-modal{z-index:300}
+.alarm-pop{max-width:400px;text-align:center;border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-bg),0 20px 60px rgba(0,0,0,.5)}
+.alarm-pop-bell{font-size:34px;line-height:1;margin-bottom:6px;animation:ring 1s ease-in-out 3}
+@keyframes ring{0%,100%{transform:rotate(0)}20%{transform:rotate(-14deg)}40%{transform:rotate(12deg)}60%{transform:rotate(-8deg)}80%{transform:rotate(5deg)}}
+.alarm-pop .modal-title{margin-bottom:14px}
+.alarm-pop-list{display:flex;flex-direction:column;gap:10px;text-align:left}
+.alarm-item{border:1px solid var(--border);background:var(--surface2);border-radius:var(--radius-sm);padding:12px}
+.alarm-item-kind{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent-lt);margin-bottom:3px}
+.alarm-item-kind.soon{color:var(--chill)}
+.alarm-item-title{font-family:'Fraunces',serif;font-size:1.05rem;color:var(--text);margin-bottom:10px;line-height:1.3;overflow-wrap:anywhere}
+.alarm-item-btns{display:flex;gap:6px;flex-wrap:wrap}
+.alarm-item-btns button{flex:1;min-width:84px;padding:8px 6px;border-radius:var(--radius-sm);font-family:'DM Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.06em;cursor:pointer;border:1px solid var(--border2);background:var(--surface);color:var(--text2)}
+.alarm-item-btns button.primary{background:var(--accent);border-color:var(--accent);color:#0a0a0a;font-weight:500}
+@media(prefers-reduced-motion:reduce){.alarm-pop-bell{animation:none}}
+
 @media(max-width:700px){body{padding:1rem}.main{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}.dash-grid{grid-template-columns:1fr}}
 </style>
 </head>
@@ -280,11 +319,15 @@ select.form-input option{background:var(--surface2)}
           <input class="form-input" id="edit-day" type="number" min="1" max="31" />
         </div>
         <div>
-          <div class="form-label">Horário do alarme</div>
-          <div class="sound-row">
-            <input class="form-input" id="edit-alarm" type="time" style="flex:1" />
-            <button class="sound-toggle" id="edit-sound-btn" onclick="toggleEditSound()" title="Ativar som para esta tarefa">🔕</button>
-          </div>
+          <div class="form-label">Até o dia <span class="opt-hint">(opcional)</span></div>
+          <input class="form-input" id="edit-end" type="number" min="1" max="31" placeholder="—" />
+        </div>
+      </div>
+      <div>
+        <div class="form-label">Horário do alarme</div>
+        <div class="sound-row">
+          <input class="form-input" id="edit-alarm" type="time" style="flex:1" />
+          <button class="sound-toggle" id="edit-sound-btn" onclick="toggleEditSound()" title="Ativar som para esta tarefa">🔕</button>
         </div>
       </div>
       <div>
@@ -315,6 +358,32 @@ select.form-input option{background:var(--surface2)}
   </div>
 </div>
 
+<!-- MODAL TOQUE DO ALARME -->
+<div class="modal-overlay" id="sound-modal">
+  <div class="modal">
+    <div class="modal-title">toque do alarme</div>
+    <button class="modal-close" onclick="closeSoundModal()">×</button>
+    <p class="snd-intro">Toque ▶ para ouvir. Toque no nome para escolher.</p>
+    <div class="snd-list" id="snd-list"></div>
+    <div class="snd-test">
+      <div class="snd-test-txt">
+        <strong>Testar o aviso fora da aba</strong>
+        <span>Toque no botão, vá para outra aba ou programa e espere 10 segundos.</span>
+      </div>
+      <button class="modal-save" id="snd-test-btn" onclick="testAlarm()">testar em 10 s</button>
+    </div>
+  </div>
+</div>
+
+<!-- POP-UP DO ALARME -->
+<div class="modal-overlay" id="alarm-modal">
+  <div class="modal alarm-pop" role="alertdialog" aria-labelledby="alarm-pop-head">
+    <div class="alarm-pop-bell">⏰</div>
+    <div class="modal-title" id="alarm-pop-head">hora da demanda</div>
+    <div class="alarm-pop-list" id="alarm-pop-list"></div>
+  </div>
+</div>
+
 <!-- HEADER -->
 <div class="header">
   <div class="header-left">
@@ -327,6 +396,7 @@ select.form-input option{background:var(--surface2)}
   </div>
   <div class="header-right">
     <button class="notif-btn" id="notif-btn" onclick="requestNotifications()">🔔 ativar alertas</button>
+    <button class="theme-btn" id="sound-cfg-btn" onclick="openSoundModal()" title="Toque do alarme">🎵</button>
     <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Alternar modo claro/escuro">🌙</button>
   </div>
 </div>
@@ -400,11 +470,15 @@ select.form-input option{background:var(--surface2)}
             <input class="form-input" id="new-day" type="number" min="1" max="31" placeholder="1–31" />
           </div>
           <div>
-            <div class="form-label">Horário</div>
-            <div class="sound-row">
-              <input class="form-input" id="new-alarm" type="time" style="flex:1" />
-              <button class="sound-toggle" id="new-sound-btn" onclick="toggleNewSound()" title="Ativar som para esta tarefa">🔕</button>
-            </div>
+            <div class="form-label">Até o dia <span class="opt-hint">(opcional)</span></div>
+            <input class="form-input" id="new-end" type="number" min="1" max="31" placeholder="—" />
+          </div>
+        </div>
+        <div>
+          <div class="form-label">Horário do alarme</div>
+          <div class="sound-row">
+            <input class="form-input" id="new-alarm" type="time" style="flex:1" />
+            <button class="sound-toggle" id="new-sound-btn" onclick="toggleNewSound()" title="Ativar som para esta tarefa">🔕</button>
           </div>
         </div>
         <div>
@@ -532,132 +606,263 @@ function getAudioCtx(){
 document.addEventListener('click',()=>{ try{ if(audioCtx&&audioCtx.state==='suspended') audioCtx.resume(); }catch(e){} },{passive:true});
 document.addEventListener('keydown',()=>{ try{ if(audioCtx&&audioCtx.state==='suspended') audioCtx.resume(); }catch(e){} },{passive:true});
 
-async function playAlarmSound(){
+// ── TOQUES DO ALARME ──
+function _beep(ctx,freq,start,dur,vol=.3,type='sine'){
+  const o=ctx.createOscillator(),g=ctx.createGain(),t=ctx.currentTime;
+  o.connect(g);g.connect(ctx.destination);o.type=type;
+  o.frequency.setValueAtTime(freq,t+start);
+  g.gain.setValueAtTime(0,t+start);
+  g.gain.linearRampToValueAtTime(vol,t+start+.01);
+  g.gain.linearRampToValueAtTime(0,t+start+dur);
+  o.start(t+start);o.stop(t+start+dur+.05);
+}
+const SOUNDS=[
+  {id:1,name:'Ding cristalino',desc:'Nota alta e limpa, como sino de meditação',play:c=>{_beep(c,1047,0,.8,.4);_beep(c,1047,0,.05,.15,'triangle');}},
+  {id:2,name:'Bip duplo suave',desc:'Dois bipes curtos e gentis',play:c=>{_beep(c,660,0,.25);_beep(c,880,.3,.25);}},
+  {id:3,name:'Acorde de harpa',desc:'Quatro notas subindo, delicadas',play:c=>{_beep(c,523,0,.6,.25);_beep(c,659,.12,.6,.2);_beep(c,784,.24,.6,.2);_beep(c,1047,.36,.7,.15);}},
+  {id:4,name:'Notificação pop',desc:'Curto, estilo app de mensagem',play:c=>{_beep(c,880,0,.08,.3);_beep(c,1174,.1,.12,.25);}},
+  {id:5,name:'Alarme crescente',desc:'Começa grave e vai subindo',play:c=>{
+    const o=c.createOscillator(),g=c.createGain(),t=c.currentTime;
+    o.connect(g);g.connect(c.destination);o.type='sawtooth';
+    o.frequency.setValueAtTime(300,t);o.frequency.linearRampToValueAtTime(900,t+1.2);
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.3,t+.3);g.gain.linearRampToValueAtTime(0,t+1.4);
+    o.start(t);o.stop(t+1.5);}},
+  {id:6,name:'Pulso rítmico',desc:'Quatro bipes rápidos em sequência',play:c=>{[0,.18,.36,.54].forEach(s=>_beep(c,880,s,.12));}},
+  {id:7,name:'Dó-Mi-Sol',desc:'Acorde simples e agradável',play:c=>{_beep(c,523,0,.5,.25);_beep(c,659,.18,.5,.25);_beep(c,784,.36,.5,.25);}},
+  {id:8,name:'Jingle 5 notas',desc:'Melodia curtinha de lembrete',play:c=>{[523,587,659,784,880].forEach((f,i)=>_beep(c,f,i*.16,.22,.25));}},
+  {id:9,name:'Sino duplo',desc:'Dois sinos em tons diferentes',play:c=>{_beep(c,830,0,.7);_beep(c,1046,0,.05,.1,'triangle');_beep(c,622,.5,.7,.25);_beep(c,784,.5,.05,.1,'triangle');}},
+];
+let alarmSoundId=(()=>{try{return parseInt(localStorage.getItem('alarm_sound'))||4;}catch(e){return 4;}})();
+
+async function playSound(id){
   try{
     const ctx=getAudioCtx();
     if(ctx.state==='suspended') await ctx.resume();
     if(ctx.state!=='running') return;
-    // Som: Notificação pop (bipe curto + nota alta)
-    [[880,0,.08,.3],[1174,.1,.12,.25]].forEach(([freq,off,dur,vol])=>{
-      const o=ctx.createOscillator(),g=ctx.createGain();
-      o.connect(g);g.connect(ctx.destination);o.type='sine';
-      o.frequency.setValueAtTime(freq,ctx.currentTime+off);
-      g.gain.setValueAtTime(0,ctx.currentTime+off);
-      g.gain.linearRampToValueAtTime(vol,ctx.currentTime+off+.01);
-      g.gain.linearRampToValueAtTime(0,ctx.currentTime+off+dur);
-      o.start(ctx.currentTime+off);o.stop(ctx.currentTime+off+dur+.05);
-    });
-  }catch(e){ console.warn('playAlarmSound erro:',e); }
+    (SOUNDS.find(s=>s.id===id)||SOUNDS[3]).play(ctx);
+  }catch(e){ console.warn('playSound erro:',e); }
+}
+async function playAlarmSound(times=1){
+  for(let i=0;i<times;i++){
+    if(i) await new Promise(r=>setTimeout(r,1800));
+    await playSound(alarmSoundId);
+  }
 }
 
-// ── NOTIFICATIONS + SERVICE WORKER ──
+function openSoundModal(){
+  try{getAudioCtx().resume();}catch(e){}
+  renderSoundList();
+  document.getElementById('sound-modal').classList.add('open');
+}
+function closeSoundModal(){document.getElementById('sound-modal').classList.remove('open');}
+function renderSoundList(){
+  document.getElementById('snd-list').innerHTML=SOUNDS.map(s=>`
+    <div class="snd-item${s.id===alarmSoundId?' sel':''}" onclick="selectSound(${s.id})" role="radio" aria-checked="${s.id===alarmSoundId}" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selectSound(${s.id});}">
+      <div class="snd-radio"></div>
+      <div class="snd-info"><div class="snd-name">${s.name}</div><div class="snd-desc">${s.desc}</div></div>
+      <button class="snd-play" id="sndp-${s.id}" onclick="event.stopPropagation();previewSound(${s.id})" title="Ouvir">▶</button>
+    </div>`).join('');
+}
+function previewSound(id){
+  playSound(id);
+  const b=document.getElementById('sndp-'+id);
+  if(b){b.classList.add('playing');b.textContent='♪';setTimeout(()=>{b.classList.remove('playing');b.textContent='▶';},1500);}
+}
+function selectSound(id){
+  alarmSoundId=id;
+  try{localStorage.setItem('alarm_sound',String(id));}catch(e){}
+  renderSoundList();
+  playSound(id);
+  toast('Toque: '+(SOUNDS.find(s=>s.id===id)||{}).name);
+}
+document.getElementById('sound-modal').addEventListener('click',function(e){if(e.target===this)closeSoundModal();});
+
+// ── NOTIFICAÇÕES + SERVICE WORKER ──
 let notifEnabled=typeof Notification!=='undefined'&&Notification.permission==='granted';
 let swReg=null;
 
-// Registra o Service Worker para notificações em background
 async function registerSW(){
   if(!('serviceWorker' in navigator)) return;
   try{
     swReg=await navigator.serviceWorker.register('./sw.js');
-    console.log('SW registrado:', swReg.scope);
-  }catch(e){
-    console.warn('SW não registrado:', e);
-  }
+  }catch(e){ console.warn('SW não registrado:', e); }
 }
 registerSW();
 
+// Cliques nos botões da notificação do sistema (✓ concluir / +10 min)
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.addEventListener('message',e=>{
+    const d=e.data||{};
+    if(d.type!=='NOTIF_ACTION') return;
+    if(d.action==='done') markTaskDoneById(d.taskId);
+    else if(d.action==='snooze') snoozeAlarm(d.taskId,d.title);
+  });
+}
+
 function requestNotifications(){
-  if(!('Notification' in window)){toast('Browser não suporta notificações');return;}
+  if(!('Notification' in window)){toast('Este navegador não mostra notificações');return;}
   try{getAudioCtx().resume();}catch(e){}
   Notification.requestPermission().then(async p=>{
     notifEnabled=p==='granted';
     document.getElementById('notif-btn').classList.toggle('enabled',notifEnabled);
     if(notifEnabled){
-      // garante SW ativo
       if(!swReg) await registerSW();
       playAlarmSound();
-      toast('🔔 alertas + som ativados! Funciona mesmo com aba fechada.');
+      toast('🔔 Alertas ativados. Deixe o app aberto em alguma aba.');
     } else {
-      toast('Permissão negada. Ative nas configurações do browser.');
+      toast('Permissão negada. Libere as notificações do site no navegador.');
     }
   });
 }
 
-// ── ALARM SCHEDULER ──
-// Guarda alarmes pendentes em memória e verifica a cada 30s
-// Isso evita o problema do AudioContext suspenso em setTimeout longos
-let pendingAlarms=[];
-
-function scheduleNotif(task){
-  if(!task.alarm) return;
-  const [h,m]=task.alarm.split(':').map(Number);
-  const at=new Date(curY,curM,task.day,h,m);
-  const tEx=at.getTime();
-  const t15=tEx-15*60*1000;
-  const now_=Date.now();
-
-  // remove alarmes antigos do mesmo task
-  pendingAlarms=pendingAlarms.filter(a=>a.taskId!==String(task.id));
-
-  if(t15>now_) pendingAlarms.push({taskId:String(task.id),time:t15,type:'15min',task});
-  if(tEx>now_) pendingAlarms.push({taskId:String(task.id),time:tEx,type:'exact',task});
-
-  // também envia para o SW (notificação visual em background)
-  if(t15>now_) _sendToSW({type:'SCHEDULE_NOTIF',title:'🌿 Demanda em 15 minutos',body:task.title,timestamp:t15,tag:'dem_15_'+task.id});
-  if(tEx>now_) _sendToSW({type:'SCHEDULE_NOTIF',title:'⏰ '+task.title,body:'Hora da sua demanda!',timestamp:tEx,tag:'dem_ex_'+task.id});
+async function showSysNotif(title,body,tag,taskId){
+  if(!('Notification' in window)||Notification.permission!=='granted') return;
+  const base={body,tag,icon:'icon-192.png',badge:'icon-192.png',requireInteraction:true,renotify:true,silent:false,vibrate:[200,100,200],data:{taskId:String(taskId),title}};
+  try{
+    const reg=swReg||(navigator.serviceWorker&&await navigator.serviceWorker.getRegistration());
+    if(reg){
+      await reg.showNotification(title,{...base,actions:[{action:'done',title:'✓ Concluir'},{action:'snooze',title:'+10 min'}]});
+      return;
+    }
+  }catch(e){ console.warn('showNotification via SW falhou:',e); }
+  try{
+    const n=new Notification(title,base);
+    n.onclick=()=>{try{window.focus();}catch(e){} n.close();};
+  }catch(e){ console.warn('Notification falhou:',e); }
 }
 
-// Verifica alarmes a cada 30 segundos
-setInterval(()=>{
-  const now_=Date.now();
-  const fired=pendingAlarms.filter(a=>a.time<=now_+30000&&a.time>now_-30000);
-  fired.forEach(a=>{
-    if(a.type==='exact'){
-      if(a.task.sound){
-        // tenta tocar — se AudioContext estiver suspenso, reagenda com interação
-        playAlarmSound().catch(()=>{});
-      }
-      if(notifEnabled){
-        try{ new Notification('⏰ '+a.task.title,{body:'Hora da sua demanda!',tag:'dem_ex_'+a.task.id}); }catch(e){}
-      }
-      toast('⏰ '+a.task.title);
-    } else {
-      if(notifEnabled){
-        try{ new Notification('🌿 Demanda em 15 minutos',{body:a.task.title,tag:'dem_15_'+a.task.id}); }catch(e){}
-      }
-      toast('⏰ Em 15min: '+a.task.title);
+// ── TÍTULO PISCANDO NA ABA ──
+const ORIG_TITLE=document.title;
+let blinkTimer=null;
+function startBlink(text){
+  if(!document.hidden) return;
+  stopBlink();
+  let on=false;
+  blinkTimer=setInterval(()=>{document.title=on?ORIG_TITLE:text;on=!on;},1000);
+}
+function stopBlink(){ if(blinkTimer){clearInterval(blinkTimer);blinkTimer=null;} document.title=ORIG_TITLE; }
+
+// ── POP-UP DO ALARME DENTRO DO APP ──
+let alarmQueue=[];
+const escHtml=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function renderAlarmPopup(){
+  const modal=document.getElementById('alarm-modal');
+  if(!alarmQueue.length){modal.classList.remove('open');return;}
+  document.getElementById('alarm-pop-head').textContent=alarmQueue.some(a=>a.kind==='exact')?'hora da demanda':'daqui a 15 minutos';
+  document.getElementById('alarm-pop-list').innerHTML=alarmQueue.map((a,i)=>`
+    <div class="alarm-item">
+      <div class="alarm-item-kind${a.kind==='soon'?' soon':''}">${a.kind==='soon'?'em 15 min':a.kind==='snooze'?'lembrete adiado':'agora'} · ${escHtml(a.time)}</div>
+      <div class="alarm-item-title">${escHtml(a.title)}</div>
+      <div class="alarm-item-btns">
+        ${a.taskId!=='teste'?`<button class="primary" onclick="alarmAction(${i},'done')">✓ concluir</button>`:''}
+        <button onclick="alarmAction(${i},'snooze')">+10 min</button>
+        <button onclick="alarmAction(${i},'ok')">ok</button>
+      </div>
+    </div>`).join('');
+  modal.classList.add('open');
+}
+function alarmAction(i,action){
+  const a=alarmQueue[i]; if(!a) return;
+  alarmQueue.splice(i,1);
+  if(action==='done') markTaskDoneById(a.taskId);
+  if(action==='snooze') snoozeAlarm(a.taskId,a.title);
+  renderAlarmPopup();
+}
+
+function markTaskDoneById(id){
+  id=String(id);
+  alarmQueue=alarmQueue.filter(a=>String(a.taskId)!==id); renderAlarmPopup();
+  const n=new Date();
+  const months=[[curM,curY],[n.getMonth(),n.getFullYear()]];
+  for(const [m,y] of months){
+    const list=(m===curM&&y===curY)?tasks:loadTasks(m,y);
+    const t=list.find(t=>String(t.id)===id);
+    if(t){ t.done=true; saveTasks(m,y,list); if(m===curM&&y===curY) render(); toast(`"${t.title}" concluída ★`); return; }
+  }
+}
+
+// ── ADIAR (+10 min) ──
+const loadSnoozes=()=>{try{return JSON.parse(localStorage.getItem('alarm_snoozes'))||[];}catch(e){return[];}};
+const saveSnoozes=s=>{try{localStorage.setItem('alarm_snoozes',JSON.stringify(s));}catch(e){}};
+function snoozeAlarm(taskId,title){
+  const s=loadSnoozes().filter(x=>String(x.taskId)!==String(taskId));
+  s.push({taskId:String(taskId),title,at:Date.now()+10*60*1000});
+  saveSnoozes(s);
+  toast('⏰ Vou lembrar de novo em 10 min');
+}
+
+// ── DISPARO ──
+function fireAlarm(task,kind){
+  const time=kind==='snooze'?'adiado':task.alarm||'';
+  alarmQueue=alarmQueue.filter(a=>!(String(a.taskId)===String(task.id)&&a.kind===kind));
+  alarmQueue.push({taskId:String(task.id),title:task.title,kind,time});
+  renderAlarmPopup();
+
+  if(task.sound) playAlarmSound(kind==='soon'?1:3);
+
+  const head=kind==='soon'?'🌿 Em 15 minutos':kind==='snooze'?'⏰ Lembrete adiado':'⏰ Hora da demanda';
+  showSysNotif(head+': '+task.title, kind==='soon'?`Começa às ${task.alarm}`:'Toque para abrir o calendário', 'dem_'+kind+'_'+task.id, task.id);
+  startBlink('⏰ '+task.title);
+}
+
+// Marca o que já tocou (vale entre recarregamentos e entre abas)
+const loadFired=()=>{try{return JSON.parse(localStorage.getItem('alarms_fired'))||{};}catch(e){return{};}};
+function markFired(key){
+  const f=loadFired(), n=Date.now();
+  f[key]=n;
+  for(const k in f) if(n-f[k]>3*864e5) delete f[k];
+  try{localStorage.setItem('alarms_fired',JSON.stringify(f));}catch(e){}
+}
+
+// Verifica a cada 15 s. Em aba de fundo o Chrome desacelera para ~1 vez por minuto,
+// por isso a janela de disparo é larga (até 15 min de atraso) e não exata.
+function checkAlarms(){
+  const n=new Date(), now_=n.getTime();
+  const m=n.getMonth(), y=n.getFullYear(), d=n.getDate();
+  const list=(m===curM&&y===curY)?tasks:loadTasks(m,y);
+  const fired=loadFired();
+  list.forEach(t=>{
+    if(t.done||!t.alarm||!taskOnDay(t,d)) return;
+    const [h,mi]=t.alarm.split(':').map(Number);
+    const at=new Date(y,m,d,h,mi).getTime();
+    const key=`${t.id}_${y}-${m+1}-${d}`;
+    if(now_>=at&&now_-at<15*60*1000){
+      if(!fired[key+'_ex']){ markFired(key+'_ex'); fireAlarm(t,'exact'); }
+    } else if(now_>=at-15*60*1000&&now_<at){
+      if(!fired[key+'_15']){ markFired(key+'_15'); fireAlarm(t,'soon'); }
     }
   });
-  // remove os disparados
-  if(fired.length) pendingAlarms=pendingAlarms.filter(a=>a.time>now_+30000);
-}, 30000);
-
-// Verificação extra ao entrar em foco na aba (captura alarmes perdidos)
+  const sn=loadSnoozes();
+  const due=sn.filter(s=>s.at<=now_);
+  if(due.length){
+    saveSnoozes(sn.filter(s=>s.at>now_));
+    due.forEach(s=>fireAlarm({id:s.taskId,title:s.title,alarm:'',sound:true},'snooze'));
+  }
+}
+setInterval(checkAlarms,15000);
+setTimeout(checkAlarms,1500);
 document.addEventListener('visibilitychange',()=>{
-  if(document.visibilityState==='visible'){
-    const now_=Date.now();
-    const missed=pendingAlarms.filter(a=>a.time<=now_&&a.time>now_-5*60*1000);
-    missed.forEach(a=>{
-      if(a.task.sound) playAlarmSound().catch(()=>{});
-      toast('⏰ Perdida: '+a.task.title);
-    });
-    pendingAlarms=pendingAlarms.filter(a=>a.time>now_-5*60*1000);
-  }
+  if(document.visibilityState==='visible'){ stopBlink(); checkAlarms(); }
 });
+window.addEventListener('focus',stopBlink);
 
-function _sendToSW(msg){
-  if(!notifEnabled) return;
-  // tenta via SW (background)
-  if(swReg?.active){
-    swReg.active.postMessage(msg);
-    return;
-  }
-  // fallback: via setTimeout na página (só funciona com aba aberta)
-  const delay=msg.timestamp-Date.now();
-  if(delay<=0) return;
-  setTimeout(()=>{
-    try{ new Notification(msg.title,{body:msg.body,tag:msg.tag}); }catch(e){}
-  }, delay);
+// Compatibilidade: chamado ao criar/editar demanda
+function scheduleNotif(){ checkAlarms(); }
+
+// ── TESTE DO AVISO ──
+let testTimer=null;
+function testAlarm(){
+  try{getAudioCtx().resume();}catch(e){}
+  if('Notification' in window&&Notification.permission==='default') requestNotifications();
+  clearTimeout(testTimer);
+  const btn=document.getElementById('snd-test-btn');
+  let s=10; btn.textContent=`em ${s} s…`;
+  const iv=setInterval(()=>{s--; if(s>0) btn.textContent=`em ${s} s…`; else {clearInterval(iv); btn.textContent='testar em 10 s';}},1000);
+  testTimer=setTimeout(()=>{
+    closeSoundModal();
+    fireAlarm({id:'teste',title:'Teste de alarme',alarm:new Date().toTimeString().slice(0,5),sound:true},'exact');
+  },10000);
+  toast('Agora mude de aba ou de programa');
 }
 
 // ── TOAST ──
@@ -675,6 +880,7 @@ function openEditModal(id){
   editSoundOn=!!t.sound;
   document.getElementById('edit-title').value=t.title;
   document.getElementById('edit-day').value=t.day;
+  document.getElementById('edit-end').value=taskEnd(t)>t.day?taskEnd(t):'';
   document.getElementById('edit-alarm').value=t.alarm||'';
   document.getElementById('edit-recur').checked=!!t.recur;
   const soundBtn=document.getElementById('edit-sound-btn');
@@ -694,7 +900,11 @@ function saveEdit(){
   const newTitle=document.getElementById('edit-title').value.trim();
   if(!newTitle){document.getElementById('edit-title').focus();return;}
   t.title=newTitle;
-  t.day=parseInt(document.getElementById('edit-day').value)||t.day;
+  const newDay=parseInt(document.getElementById('edit-day').value)||t.day;
+  const newEnd=readEndDay(newDay,document.getElementById('edit-end').value);
+  if(newEnd===undefined){document.getElementById('edit-end').focus();return;}
+  t.day=newDay;
+  if(newEnd) t.endDay=newEnd; else delete t.endDay;
   t.alarm=document.getElementById('edit-alarm').value;
   t.cat=document.getElementById('edit-cat').value;
   t.priority=editPrio;
@@ -707,7 +917,7 @@ function saveEdit(){
   saveTasks(curM,curY,tasks);closeModal();toast(`"${t.title}" atualizada ✓`);render();
 }
 document.getElementById('edit-modal').addEventListener('click',function(e){if(e.target===this)closeModal();});
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeSoundModal();}});
 
 // ── CATEGORIES ──
 // ── TASK NOTES STORAGE ──
@@ -785,20 +995,36 @@ function deleteCat(id){
   cats=cats.filter(c=>c.id!==id);saveCats(cats);renderCats();render();toast('Categoria removida');
 }
 
+// ── PERÍODO (dia inicial → dia final) ──
+const taskEnd=t=>(t.endDay&&t.endDay>t.day)?t.endDay:t.day;
+const taskOnDay=(t,d)=>d>=t.day&&d<=taskEnd(t);
+const dayLabel=t=>taskEnd(t)>t.day?`${t.day}–${taskEnd(t)}`:`${t.day}`;
+function readEndDay(startDay,raw){
+  const end=parseInt(raw);
+  if(!end) return null;
+  const dim=new Date(curY,curM+1,0).getDate();
+  if(end<startDay){ toast('O dia final precisa ser depois do dia inicial'); return undefined; }
+  if(end===startDay) return null;
+  return Math.min(end,dim);
+}
+
 // ── TASKS ──
 function addTask(){
   const title=document.getElementById('new-title').value.trim();
   const day=parseInt(document.getElementById('new-day').value)||1;
+  const endDay=readEndDay(day,document.getElementById('new-end').value);
+  if(endDay===undefined){document.getElementById('new-end').focus();return;}
   const alarm=document.getElementById('new-alarm').value;
   const cat=document.getElementById('new-cat').value;
   const recur=document.getElementById('new-recur').checked;
   if(!title){document.getElementById('new-title').focus();return;}
-  const task={id:Date.now(),title,day,alarm,cat,priority:selPrio,recur,sound:newSoundOn,done:false};
+  const task={id:Date.now(),title,day,...(endDay?{endDay}:{}),alarm,cat,priority:selPrio,recur,sound:newSoundOn,done:false};
   tasks.push(task);saveTasks(curM,curY,tasks);
   if(recur){const base=getRecurBase();base.push({...task,id:Date.now()+1});saveRecurBase(base);}
   scheduleNotif(task);
   document.getElementById('new-title').value='';
   document.getElementById('new-day').value='';
+  document.getElementById('new-end').value='';
   document.getElementById('new-alarm').value='';
   document.getElementById('new-recur').checked=false;
   newSoundOn=false;
@@ -909,7 +1135,12 @@ function commitDayEdit(id,val){
   const day=parseInt(val);
   if(!day||day<1||day>31){render();return;}
   const t=tasks.find(t=>String(t.id)===id);
-  if(t&&t.day!==day){t.day=day;saveTasks(curM,curY,tasks);toast(`Prazo atualizado para dia ${day}`);}
+  if(t&&t.day!==day){
+    const dur=taskEnd(t)-t.day;
+    t.day=day;
+    if(dur>0){ t.endDay=Math.min(day+dur,new Date(curY,curM+1,0).getDate()); if(t.endDay<=t.day) delete t.endDay; }
+    saveTasks(curM,curY,tasks);toast(`Prazo atualizado para dia ${dayLabel(t)}`);
+  }
   render();
 }
 
@@ -979,10 +1210,11 @@ function renderCalendar(){
   // build a map: day -> [task colors]
   const dayMap={};
   tasks.forEach(t=>{
-    const d=t.day;
-    if(!dayMap[d]) dayMap[d]=[];
     const cat=cats.find(c=>c.id===t.cat)||{color:'#4a7a60'};
-    dayMap[d].push({color:cat.color,done:t.done});
+    for(let d=t.day;d<=taskEnd(t);d++){
+      if(!dayMap[d]) dayMap[d]=[];
+      dayMap[d].push({color:cat.color,done:t.done});
+    }
   });
 
   let html='';
@@ -1029,7 +1261,7 @@ function clearCalFilter(){
 // ── RENDER ──
 function renderTaskList(){
   const today=now.getDate(), isCurMRender=(curM===now.getMonth()&&curY===now.getFullYear());
-  let filtered=calFilterDay ? tasks.filter(t=>t.day===calFilterDay) : tasks;
+  let filtered=calFilterDay ? tasks.filter(t=>taskOnDay(t,calFilterDay)) : tasks;
 
   const sorted=[...filtered].sort((a,b)=>{
     const po={urgent:0,important:1,chill:2};
@@ -1052,8 +1284,8 @@ function renderTaskList(){
       const hex=cat.color.replace('#','');
       const r=parseInt(hex.substring(0,2),16),g=parseInt(hex.substring(2,4),16),b=parseInt(hex.substring(4,6),16);
       const bgStyle=`background:linear-gradient(135deg,rgba(${r},${g},${b},.12) 0%,rgba(${r},${g},${b},.05) 55%,rgba(10,10,10,.5) 100%);border-color:rgba(${r},${g},${b},.28);`;
-      const isOverdue=isCurMRender&&!t.done&&t.day<today;
-      const dayTag=`<span class="tag tag-day" onclick="startDayEdit(event,'${t.id}')" title="Clique para alterar o prazo">dia ${t.day}</span>`;
+      const isOverdue=isCurMRender&&!t.done&&taskEnd(t)<today;
+      const dayTag=`<span class="tag tag-day" onclick="startDayEdit(event,'${t.id}')" title="Clique para alterar o prazo">dia ${dayLabel(t)}</span>`;
       const prioEmoji={urgent:'🌸',important:'🌿',chill:'🌊'}[t.priority||'chill'];
       const noteOpen=openNotesTasks.has(String(t.id));
       const hasNote=(taskNotes[String(t.id)]||'').trim().length>0;
@@ -1063,7 +1295,7 @@ function renderTaskList(){
         <div class="task-check ${t.done?'checked':''}" onclick="toggleTask('${t.id}')"></div>
         <span class="task-star">★</span>
         <div class="task-body">
-          ${isOverdue?`<div class="overdue-strip">⚠ atrasada — dia ${t.day}</div>`:''}
+          ${isOverdue?`<div class="overdue-strip">⚠ atrasada — dia ${dayLabel(t)}</div>`:''}
           <div class="task-title">${t.title}</div>
           <div class="task-meta">
             ${dayTag}
@@ -1096,7 +1328,7 @@ function render(){
   const done=tasks.filter(t=>t.done).length, total=tasks.length;
   const isCurMStat=(curM===now.getMonth()&&curY===now.getFullYear());
   const todayStat=now.getDate();
-  const overdueStat=isCurMStat?tasks.filter(t=>!t.done&&t.day<todayStat).length:0;
+  const overdueStat=isCurMStat?tasks.filter(t=>!t.done&&taskEnd(t)<todayStat).length:0;
   const recur=tasks.filter(t=>t.recur).length;
   const pct=total?Math.round(done/total*100):0;
 
@@ -1117,7 +1349,7 @@ function render(){
 function renderInsights(done,total,pct,urgent,overdue){
   const today=now.getDate(),isCurM=(curM===now.getMonth()&&curY===now.getFullYear());
   const pending=tasks.filter(t=>!t.done);
-  const soon=isCurM?pending.filter(t=>t.day>=today&&t.day<=today+5):[];
+  const soon=isCurM?pending.filter(t=>taskEnd(t)>=today&&t.day<=today+5):[];
   const ins=[];
   if(!total){ins.push({type:'info',text:'Nenhuma demanda ainda. Comece adicionando pelo formulário!'});}
   else{
@@ -1136,10 +1368,6 @@ function renderInsights(done,total,pct,urgent,overdue){
 
 render();
 
-// Reagenda notificações pendentes ao carregar a página
-setTimeout(()=>{
-  if(notifEnabled) tasks.filter(t=>!t.done&&t.alarm).forEach(t=>scheduleNotif(t));
-},1000);
 </script>
 </body>
 </html>

@@ -1,7 +1,7 @@
 {
   "name": "Calendário de Demandas",
   "short_name": "Demandas",
-  "start_url": "./calendario-demandas.html",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "background_color": "#14181a",
