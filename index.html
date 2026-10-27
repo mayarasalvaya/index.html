@@ -45,24 +45,24 @@
   --bg:        #f5f2e8;
   --surface:   #ffffff;
   --surface2:  #f0ede0;
-  --border:    #ddd9c8;
-  --border2:   #ccc8b4;
-  --text:      #1a2e1a;
-  --text2:     #3a5a3a;
-  --text3:     #7a8a6a;
-  --accent:    #5a7a30;
-  --accent-lt: #6a9238;
-  --accent-bg: rgba(90,122,48,.08);
+  --border:    #d4cfb9;
+  --border2:   #bdb8a0;
+  --text:      #14241a;
+  --text2:     #2c4630;
+  --text3:     #55654a;
+  --accent:    #4a6a22;
+  --accent-lt: #456420;
+  --accent-bg: rgba(74,106,34,.1);
   --teal:      #0a4a58;
-  --teal-lt:   #126070;
-  --rose:      #b07060;
-  --rose-lt:   #c88878;
-  --beige:     #2a3a2a;
-  --urgent:    #b07060;
-  --urgent-bg: rgba(176,112,96,.08);
-  --important: #9a7a40;
-  --chill:     #4a8898;
-  --done-star: #b89020;
+  --teal-lt:   #0e5868;
+  --rose:      #9a4a3e;
+  --rose-lt:   #a3503f;
+  --beige:     #1e2e1e;
+  --urgent:    #9a4a3e;
+  --urgent-bg: rgba(154,74,62,.09);
+  --important: #775816;
+  --chill:     #2a6474;
+  --done-star: #87660c;
   --task-fade: rgba(255,255,255,.7);
 }
 *{box-sizing:border-box;margin:0;padding:0}
@@ -274,7 +274,16 @@ select.form-input option{background:var(--surface2)}
 .toast.show{transform:translateY(0);opacity:1}
 
 /* ── MINI CALENDAR WIDGET ── */
-.cal-widget{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;margin-bottom:1.5rem;max-width:320px}
+.cal-widget{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px}
+/* calendário e categorias lado a lado, mesma largura e altura */
+.overview-row{display:grid;grid-template-columns:repeat(2,minmax(0,340px));gap:12px;margin-bottom:1.5rem;align-items:stretch}
+.overview-row>.dash{margin-bottom:0;display:flex;flex-direction:column}
+.overview-row>.dash .dash-grid,.overview-row>.dash .dash-card{flex:1;display:flex;flex-direction:column}
+.overview-row>.dash .dash-card{padding:10px 12px}
+.overview-row>.dash .dash-title{margin-bottom:10px;letter-spacing:.12em}
+.overview-row>.dash #dash-body{flex:1;min-height:0;overflow-y:auto;max-height:240px;padding-right:2px}
+.overview-row>.is-collapsed{align-self:start}
+@media(max-width:700px){.overview-row{grid-template-columns:minmax(0,1fr)}}
 .cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
 .cal-title{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.12em}
 .cal-filter-badge{font-size:10px;color:var(--accent-lt);background:rgba(131,153,88,.12);border:1px solid rgba(131,153,88,.25);border-radius:3px;padding:2px 7px;cursor:pointer;transition:all .15s}
@@ -469,6 +478,21 @@ select.form-input option{background:var(--surface2)}
   </div>
 </div>
 
+<!-- CALENDÁRIO + CATEGORIAS LADO A LADO -->
+<div class="overview-row">
+<!-- MINI CALENDAR WIDGET -->
+<div class="cal-widget">
+  <div class="cal-header">
+    <div class="cal-title" style="cursor:pointer;display:flex;align-items:center;gap:6px" onclick="toggleCalWidget()">
+      <span id="cal-toggle-icon">▾</span> calendário do mês
+    </div>
+    <span class="cal-filter-badge" id="cal-clear-btn" style="display:none" onclick="clearCalFilter()">✕ limpar filtro</span>
+  </div>
+  <div id="cal-body">
+    <div class="cal-grid" id="cal-grid"></div>
+  </div>
+</div>
+
 <!-- DASHBOARD -->
 <div class="dash">
   <div class="dash-grid">
@@ -482,18 +506,6 @@ select.form-input option{background:var(--surface2)}
     </div>
   </div>
 </div>
-
-<!-- MINI CALENDAR WIDGET -->
-<div class="cal-widget">
-  <div class="cal-header">
-    <div class="cal-title" style="cursor:pointer;display:flex;align-items:center;gap:6px" onclick="toggleCalWidget()">
-      <span id="cal-toggle-icon">▾</span> calendário do mês
-    </div>
-    <span class="cal-filter-badge" id="cal-clear-btn" style="display:none" onclick="clearCalFilter()">✕ limpar filtro</span>
-  </div>
-  <div id="cal-body">
-    <div class="cal-grid" id="cal-grid"></div>
-  </div>
 </div>
 
 <!-- MAIN -->
@@ -589,6 +601,7 @@ function toggleTheme(){
     localStorage.setItem('theme','light');
   }
   updateThemeBtn();
+  if(typeof render==='function') render();
 }
 function updateThemeBtn(){
   const btn=document.getElementById('theme-btn');
@@ -1205,6 +1218,7 @@ function toggleDash(){
   const icon=document.getElementById('dash-toggle-icon');
   if(body) body.style.display=dashCollapsed?'none':'block';
   if(icon) icon.textContent=dashCollapsed?'▸':'▾';
+  document.querySelector('.dash')?.classList.toggle('is-collapsed',dashCollapsed);
 }
 
 function renderDash(){
@@ -1212,6 +1226,7 @@ function renderDash(){
   const icon=document.getElementById('dash-toggle-icon');
   if(body) body.style.display=dashCollapsed?'none':'block';
   if(icon) icon.textContent=dashCollapsed?'▸':'▾';
+  document.querySelector('.dash')?.classList.toggle('is-collapsed',dashCollapsed);
 
   const barsEl=document.getElementById('dash-bars');
   const catData=cats.map(c=>{
@@ -1227,7 +1242,7 @@ function renderDash(){
     barsEl.innerHTML=catData.map(c=>`
       <div class="cat-bar-item">
         <div class="cat-bar-label">
-          <span class="cat-bar-name" style="color:${c.color}">${c.name}</span>
+          <span class="cat-bar-name" style="color:${inkColor(c.color)}">${c.name}</span>
           <span class="cat-bar-nums">${c.done}/${c.total} ★</span>
         </div>
         <div class="cat-bar-track">
@@ -1248,6 +1263,7 @@ function toggleCalWidget(){
   const icon=document.getElementById('cal-toggle-icon');
   if(body) body.style.display=calCollapsed?'none':'block';
   if(icon) icon.textContent=calCollapsed?'▸':'▾';
+  document.querySelector('.cal-widget')?.classList.toggle('is-collapsed',calCollapsed);
 }
 
 function renderCalendar(){
@@ -1296,6 +1312,7 @@ function renderCalendar(){
   const icon=document.getElementById('cal-toggle-icon');
   if(body) body.style.display=calCollapsed?'none':'block';
   if(icon) icon.textContent=calCollapsed?'▸':'▾';
+  document.querySelector('.cal-widget')?.classList.toggle('is-collapsed',calCollapsed);
 }
 
 function toggleCalFilter(d){
@@ -1307,6 +1324,22 @@ function clearCalFilter(){
   calFilterDay=null;
   renderCalendar();
   renderTaskList();
+}
+
+// ── COR DE TEXTO LEGÍVEL PARA CATEGORIAS ──
+function _lum(r,g,b){const f=c=>{c/=255;return c<=.03928?c/12.92:Math.pow((c+.055)/1.055,2.4);};return .2126*f(r)+.7152*f(g)+.0722*f(b);}
+function inkColor(hex){
+  const h=(hex||'#4a7a60').replace('#','');
+  let r=parseInt(h.substring(0,2),16),g=parseInt(h.substring(2,4),16),b=parseInt(h.substring(4,6),16);
+  const light=document.documentElement.getAttribute('data-theme')==='light';
+  const bg=light?_lum(255,255,255):_lum(17,17,17);
+  const target=light?0:255;
+  for(let i=0;i<12;i++){
+    const L=_lum(r,g,b), ratio=(Math.max(L,bg)+.05)/(Math.min(L,bg)+.05);
+    if(ratio>=5) break;
+    r=Math.round(r+(target-r)*.15); g=Math.round(g+(target-g)*.15); b=Math.round(b+(target-b)*.15);
+  }
+  return `rgb(${r},${g},${b})`;
 }
 
 // ── RENDER ──
@@ -1350,7 +1383,7 @@ function renderTaskList(){
           <div class="task-title">${t.title}</div>
           <div class="task-meta">
             ${dayTag}
-            <span class="tag" style="background:rgba(${r},${g},${b},.18);color:rgba(${r},${g},${b},1);border:1px solid rgba(${r},${g},${b},.35)">${cat.name}</span>
+            <span class="tag" style="background:rgba(${r},${g},${b},.16);color:${inkColor(cat.color)};border:1px solid rgba(${r},${g},${b},.45)">${cat.name}</span>
             ${isOverdue?`<span class="tag tag-overdue">⏰ atrasada</span>`:''}
             ${t.alarm?`<span class="tag tag-alarm">⏰ ${t.alarm}</span>`:''}
             ${t.alarm?`<span class="tag ${t.sound?'tag-sound-on':'tag-sound-off'}">${t.sound?'🔔':'🔕'}</span>`:''}
