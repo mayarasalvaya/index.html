@@ -38,6 +38,8 @@
   --chill:     #7ab8c4;
   --done-star: #e8c84a;
   --task-fade: rgba(10,10,10,.5);
+  --cat-tint: .13;
+  --cat-edge: .38;
   --radius:    12px;
   --radius-sm: 7px;
 }
@@ -64,6 +66,8 @@
   --chill:     #2a6474;
   --done-star: #87660c;
   --task-fade: rgba(255,255,255,.7);
+  --cat-tint: .11;
+  --cat-edge: .45;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;font-size:13px;min-height:100vh;padding:2rem}
@@ -119,6 +123,11 @@ body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;font
 .task{border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;display:flex;align-items:flex-start;gap:10px;transition:border-color .15s,opacity .2s;position:relative;overflow:hidden}
 .task:hover{border-color:var(--border2)}
 .task.done{opacity:.5}
+/* card com a cor da categoria, de leve */
+.task{--cat:74,122,96;background:linear-gradient(rgba(var(--cat),var(--cat-tint)),rgba(var(--cat),var(--cat-tint))),var(--surface);border-color:rgba(var(--cat),var(--cat-edge))}
+.task:hover{border-color:rgba(var(--cat),.6)}
+.task.done{filter:saturate(.55)}
+.tag-cat{background:rgb(var(--cat));border:1px solid rgb(var(--cat));font-weight:500}
 .task.done .task-title{text-decoration:line-through;color:var(--text3)}
 .task::after{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px 0 0 3px}
 .task.p-urgent::after{background:var(--urgent)}
@@ -1388,7 +1397,7 @@ function renderTaskList(){
       const cat=cats.find(c=>c.id===t.cat)||{color:'#4a7a60',name:t.cat||'—'};
       const hex=cat.color.replace('#','');
       const r=parseInt(hex.substring(0,2),16),g=parseInt(hex.substring(2,4),16),b=parseInt(hex.substring(4,6),16);
-      const bgStyle=`background:linear-gradient(135deg,rgba(${r},${g},${b},.12) 0%,rgba(${r},${g},${b},.05) 55%,var(--task-fade) 100%);border-color:rgba(${r},${g},${b},.28);`;
+      const bgStyle=`--cat:${r},${g},${b};`;
       const isOverdue=isCurMRender&&!t.done&&taskEnd(t)<today;
       const dayTag=`<span class="tag tag-day" onclick="startDayEdit(event,'${t.id}')" title="Clique para alterar o prazo">dia ${dayLabel(t)}</span>`;
       const prioEmoji=(PRIO[t.priority]||PRIO.chill).e;
@@ -1403,7 +1412,7 @@ function renderTaskList(){
           <div class="task-title">${t.title}</div>
           <div class="task-meta">
             ${dayTag}
-            <span class="tag" style="background:rgba(${r},${g},${b},.16);color:${inkColor(cat.color)};border:1px solid rgba(${r},${g},${b},.45)">${cat.name}</span>
+            <span class="tag tag-cat" style="color:${_lum(r,g,b)>.18?'#14181a':'#ffffff'}">${cat.name}</span>
             ${isOverdue?`<span class="tag tag-overdue">⏰ atrasada</span>`:''}
             ${t.alarm?`<span class="tag tag-alarm">⏰ ${t.alarm}</span>`:''}
             ${t.alarm?`<span class="tag ${t.sound?'tag-sound-on':'tag-sound-off'}">${t.sound?'🔔':'🔕'}</span>`:''}
