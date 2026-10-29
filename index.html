@@ -1051,7 +1051,7 @@ function renderCats(){
     const count=tasks.filter(t=>t.cat===c.id).length;
     return `<div class="cat-item" id="catrow-${c.id}">
       <button class="cat-color-btn" style="background:${c.color}" title="Clique para mudar a cor">
-        <input type="color" value="${c.color}" oninput="updateCatColor('${c.id}',this.value)" />
+        <input type="color" value="${c.color}" oninput="previewCatColor('${c.id}',this.value)" onchange="updateCatColor('${c.id}',this.value)" />
       </button>
       <input class="cat-name-input" value="${c.name}"
         onblur="updateCatName('${c.id}',this.value)"
@@ -1062,10 +1062,29 @@ function renderCats(){
     </div>`;
   }).join('');
 }
+// Enquanto escolhe: só pinta a bolinha e os cards da categoria (sem redesenhar a página,
+// para não destruir o seletor de cor aberto).
+let _catPreviewRaf=null;
+function previewCatColor(id,color){
+  if(_catPreviewRaf) cancelAnimationFrame(_catPreviewRaf);
+  _catPreviewRaf=requestAnimationFrame(()=>{
+    _catPreviewRaf=null;
+    const btn=document.querySelector(`#catrow-${id} .cat-color-btn`);
+    if(btn) btn.style.background=color;
+    const h=color.replace('#',''), r=parseInt(h.substring(0,2),16), g=parseInt(h.substring(2,4),16), b=parseInt(h.substring(4,6),16);
+    if([r,g,b].some(isNaN)) return;
+    const ink=_lum(r,g,b)>.18?'#14181a':'#ffffff';
+    document.querySelectorAll(`.task[data-cat="${CSS.escape(id)}"]`).forEach(el=>{
+      el.style.setProperty('--cat',`${r},${g},${b}`);
+      const tag=el.querySelector('.tag-cat'); if(tag) tag.style.color=ink;
+    });
+  });
+}
+// Ao fechar o seletor: salva e atualiza o resto (gráfico, calendário).
 function updateCatColor(id,color){
-  const c=cats.find(c=>c.id===id);if(c){c.color=color;saveCats(cats);}
-  const btn=document.querySelector(`#catrow-${id} .cat-color-btn`);
-  if(btn)btn.style.background=color;
+  const c=cats.find(c=>c.id===id);
+  if(!c||c.color===color) return;
+  c.color=color; saveCats(cats);
   render();
 }
 function updateCatName(id,name){
@@ -1404,7 +1423,7 @@ function renderTaskList(){
       const noteOpen=openNotesTasks.has(String(t.id));
       const hasNote=(taskNotes[String(t.id)]||'').trim().length>0;
       const noteVal=(taskNotes[String(t.id)]||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-      return `<div class="task p-${t.priority||'chill'} ${t.done?'done':''} ${isOverdue?'overdue':''} ${noteOpen?'notes-open':''}" style="${bgStyle}">
+      return `<div class="task p-${t.priority||'chill'} ${t.done?'done':''} ${isOverdue?'overdue':''} ${noteOpen?'notes-open':''}" data-cat="${escHtml(t.cat||'')}" style="${bgStyle}">
         <div class="task-check ${t.done?'checked':''}" onclick="toggleTask('${t.id}')"></div>
         <span class="task-star">★</span>
         <div class="task-body">
